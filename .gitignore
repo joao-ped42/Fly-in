@@ -1,0 +1,9 @@
+path.txt
+teste.py
+unit_test_fly_in.py
+maps
+venv
+__pycache__
+.mypy_cache
+/__pycache__
+/.mypy_cache
