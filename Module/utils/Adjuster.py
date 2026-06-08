@@ -27,10 +27,30 @@ class Adjuster:
         return (int(screen_x), int(screen_y))
 
     @staticmethod
-    def size_adjuster(image_w: int, screen_w: int, total_hubs: int) -> int:
+    def size_adjuster(image_w: int, surface_w: int, total_hubs: int) -> int:
         def f(x: int) -> float:
             return (300 * (1 - exp(-0.45 * x)))
 
-        var: float = ((screen_w - (total_hubs - 1))
+        var: float = ((surface_w - (total_hubs - 1))
                       / (total_hubs * (image_w + f(total_hubs))))
         return (int((image_w * var)))
+
+    @staticmethod
+    def variation_rate(current_x: int,
+                       current_y: int,
+                       next_x: int,
+                       next_y: int) -> tuple[int, int]:
+        delta_x: int = next_x - current_x
+        delta_y: int = next_y - current_y
+        vel: int = 7
+        if (delta_x != 0 and delta_y != 0):
+            if (delta_x > delta_y):
+                delta: float = (delta_y / delta_x)
+            else:
+                delta = (delta_x / delta_y)
+            return ((vel, vel * delta))
+        if (delta_x == 0):
+            return ((0, vel))
+        if (delta_y == 0):
+            return ((vel, 0))
+        return ((0, 0))

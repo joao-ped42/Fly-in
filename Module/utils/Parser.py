@@ -101,7 +101,7 @@ class Parser:
         return (Connection(parent, child, max_capacity))
 
     def get_hub(self, hub_data: str,
-                screen_w: int,
+                graph_w: int,
                 total_hubs: int,
                 is_start: bool,
                 is_end: bool) -> Hub:
@@ -111,8 +111,8 @@ class Parser:
             name: str = hub_data_split[0]
             x: int = int(hub_data_split[1])
             y: int = int(hub_data_split[2])
-            img_size: int = Adjuster.size_adjuster(894, screen_w, total_hubs)
-            metadata: dict[str, str | int] = {"color": "red"}
+            img_size: int = Adjuster.size_adjuster(894, graph_w, total_hubs)
+            metadata: dict[str, str | int] = {"color": "None"}
             if (len(hub_data_split) > 3):
                 base_metadata: str = self.Validator.metadaticfy(hub_data_split,
                                                                 3)

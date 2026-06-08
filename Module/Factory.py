@@ -1,7 +1,7 @@
-from .utils import Hub, Parser, Connection, Adjuster
+from .utils import Parser, Adjuster
 from .utils import FactoryError, HubSobrepositionError
 from .Scenario import Scenario
-from collections.abc import Callable
+from .Types import Hubs, Connecs, Filter
 
 
 class Factory:
@@ -24,8 +24,8 @@ class Factory:
     def __get_hubs(lines: list[str],
                    screen_w: int,
                    screen_h: int,
-                   total_hubs: int) -> list[Hub]:
-        ret: list[Hub] = []
+                   total_hubs: int) -> Hubs:
+        ret: Hubs = []
         parser: Parser = Parser()
         graph_width: int = int(screen_w * (72.9 / 100))
         try:
@@ -68,9 +68,8 @@ class Factory:
         return (ret)
 
     @staticmethod
-    def __get_connections(lines: list[str],
-                          hubs: list[Hub]) -> list[Connection]:
-        ret: list[Connection] = []
+    def __get_connecs(lines: list[str], hubs: Hubs) -> Connecs:
+        ret: Connecs = []
         parser: Parser = Parser()
         try:
             for line in lines:
@@ -87,14 +86,14 @@ class Factory:
             lines: list[str] = file.readlines()
         Parser.Validator.verify_config_file(lines)
         try:
-            hub_filter: Callable[[str], bool]\
-                = lambda x: x.startswith(("hub:", "start_hub:", "end_hub:"))
-            connection_filter: Callable[[str], bool]\
-                = lambda x: x.startswith("connection:")
+            hub_types: tuple[str, str, str] = ("hub:",
+                                               "start_hub:",
+                                               "end_hub:")
+            hub_filter: Filter = lambda x: x.startswith(hub_types)
+            connec_filter: Filter = lambda x: x.startswith("connection:")
 
             hubs_data: list[str] = list(filter(hub_filter, lines))
-            connections_data: list[str]\
-                = list(filter(connection_filter, lines))
+            connecs_data: list[str] = list(filter(connec_filter, lines))
 
             if (sum([1 for string in hubs_data
                      if string.startswith("start_hub")]) != 1):
@@ -104,13 +103,13 @@ class Factory:
                      if string.startswith("end_hub")]) != 1):
                 raise HubSobrepositionError("end_hub quantity"
                                             " is different than 1")
+
             nb_drones: int = self.__get_nb_drones(lines)
-            hubs: list[Hub] = self.__get_hubs(hubs_data,
-                                              screen_w,
-                                              screen_h,
-                                              len(hubs_data))
-            connections: list[Connection]\
-                = self.__get_connections(connections_data, hubs)
+            hubs: Hubs = self.__get_hubs(hubs_data,
+                                         screen_w,
+                                         screen_h,
+                                         len(hubs_data))
+            connections: Connecs = self.__get_connecs(connecs_data, hubs)
         except Exception as e:
             raise FactoryError(f"Error parsing data: {e}")
         return (Scenario(nb_drones, hubs, connections))

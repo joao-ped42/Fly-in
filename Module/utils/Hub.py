@@ -1,6 +1,8 @@
-from .Exceptions import HubSobrepositionError
-from pygame import Surface, image, transform
+from pygame import Surface
+from pygame.image import load
 from .Adjuster import Adjuster
+from pygame.transform import scale
+from .Exceptions import HubSobrepositionError
 
 
 class Hub:
@@ -18,10 +20,10 @@ class Hub:
         self.coordinates: tuple[int, int] = (x, y)
         self.zone: str = "normal"
         self.max_drones: int = 1
-        img: Surface = image.load("src/hubs/red.png")
+        img: Surface = load("src/hubs/rainbow.png")
         if ("color" in metadata):
-            img = image.load(f"src/hubs/{metadata['color']}.png")
-        self.sprite = transform.scale(img, (sprite_size[0], sprite_size[1]))
+            img = load(f"src/hubs/{metadata['color']}.png")
+        self.sprite: Surface = scale(img, (sprite_size[0], sprite_size[1]))
         if ("zone" in metadata):
             if (isinstance(metadata['zone'], str)):
                 self.zone = metadata['zone']
@@ -30,6 +32,12 @@ class Hub:
                 self.max_drones = metadata['max_drones']
         self.is_start: bool = is_start
         self.is_end: bool = is_end
+        if (self.is_end):
+            effect: Surface = load("src/hubs/spark.png")
+            resized_effect: Surface = scale(effect,
+                                            (self.sprite.get_width(),
+                                             self.sprite.get_width()))
+            self.sprite.blit(resized_effect, (0, 0))
 
     def set_norm_coord(self, min_xy: tuple[int, int],
                        max_xy: tuple[int, int],
