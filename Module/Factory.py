@@ -27,7 +27,6 @@ class Factory:
                    total_hubs: int) -> Hubs:
         ret: Hubs = []
         parser: Parser = Parser()
-        graph_width: int = int(screen_w * (72.9 / 100))
         try:
             for line in lines:
                 better_line: str = line.split("#")[0].strip()
@@ -35,17 +34,17 @@ class Factory:
                 parse_data: str = better_line.split(":")[1].strip()
                 if (hub_type == 'start_hub'):
                     ret.append(parser.get_hub(parse_data,
-                                              graph_width,
+                                              screen_w,
                                               total_hubs,
                                               True, False))
                 elif (hub_type == 'end_hub'):
                     ret.append(parser.get_hub(parse_data,
-                                              graph_width,
+                                              screen_w,
                                               total_hubs,
                                               False, True))
                 else:
                     ret.append(parser.get_hub(parse_data,
-                                              graph_width,
+                                              screen_w,
                                               total_hubs,
                                               False, False))
         except Exception as e:
@@ -57,8 +56,8 @@ class Factory:
         hubs_y: list[int] = [y for _, y in coords]
         max_xy: tuple[int, int] = (max(hubs_x), max(hubs_y))
         min_xy: tuple[int, int] = (min(hubs_x), min(hubs_y))
-        img_size: int = Adjuster.size_adjuster(894, graph_width, total_hubs)
-        screen_info: tuple[int, int] = (graph_width - img_size,
+        img_size: int = Adjuster.size_adjuster(894, screen_w, total_hubs)
+        screen_info: tuple[int, int] = (screen_w - img_size,
                                         int(screen_h - (img_size)))
         for hub in ret:
             hub.set_norm_coord(min_xy,

@@ -1,5 +1,5 @@
-from .Hub import Hub
-from .Connection import Connection
+from ..objs.Hub import Hub
+from ..objs.Connection import Connection
 from .Exceptions import ConnectionError, MetadataError
 from .Adjuster import Adjuster
 
@@ -112,7 +112,7 @@ class Parser:
             x: int = int(hub_data_split[1])
             y: int = int(hub_data_split[2])
             img_size: int = Adjuster.size_adjuster(894, graph_w, total_hubs)
-            metadata: dict[str, str | int] = {"color": "None"}
+            metadata: dict[str, str | int] = {}
             if (len(hub_data_split) > 3):
                 base_metadata: str = self.Validator.metadaticfy(hub_data_split,
                                                                 3)

@@ -1,4 +1,4 @@
-from math import exp
+from math import exp, sqrt
 
 
 class Adjuster:
@@ -18,12 +18,14 @@ class Adjuster:
         scale_x: float = screen_w / graph_w
         scale_y: float = screen_h / graph_h
         scale: float = min(scale_x, scale_y)
-        graph_center_x: float = (max_x + min_x) / 2
+        graph_center_x: float = ((max_x + min_x) / 2)
         graph_center_y: float = (max_y + min_y) / 2
         screen_center_x: float = screen_w / 2
         screen_center_y: float = screen_h / 2
-        screen_x: float = (coord[0] - graph_center_x) * scale + screen_center_x
-        screen_y: float = (coord[1] - graph_center_y) * scale + screen_center_y
+        screen_x: int = int((coord[0] - graph_center_x)
+                            * scale + screen_center_x)
+        screen_y: int = int((coord[1] - graph_center_y)
+                            * scale + screen_center_y)
         return (int(screen_x), int(screen_y))
 
     @staticmethod
@@ -39,18 +41,38 @@ class Adjuster:
     def variation_rate(current_x: int,
                        current_y: int,
                        next_x: int,
-                       next_y: int) -> tuple[int, int]:
+                       next_y: int,
+                       past_hub_coords: tuple[int, int]) -> tuple[int, int]:
         delta_x: int = next_x - current_x
         delta_y: int = next_y - current_y
-        vel: int = 7
+        con_length: float = sqrt((next_x - past_hub_coords[0]) ** 2
+                                 + (next_y - past_hub_coords[1]) ** 2)
+        # print("con_length =", con_length)
+        vel: float = 2/100 * con_length
         if (delta_x != 0 and delta_y != 0):
             if (delta_x > delta_y):
                 delta: float = (delta_y / delta_x)
             else:
                 delta = (delta_x / delta_y)
-            return ((vel, vel * delta))
+            ret_y: float = vel * delta
+            # print(f"ret_y = {ret_y}")
+            return ((int(vel), int(ret_y)))
         if (delta_x == 0):
-            return ((0, vel))
+            if (delta_y < 0):
+                return ((0, int(-vel)))
+            return ((0, int(vel)))
         if (delta_y == 0):
-            return ((vel, 0))
+            if (delta_x < 0):
+                return ((int(-vel), 0))
+            return ((int(vel), 0))
         return ((0, 0))
+
+    @staticmethod
+    def centralize_drone(hub_size: int,
+                         drone_size: int,
+                         hub_coords: tuple[int, int]) -> tuple[int, int]:
+        hub_x: int = hub_coords[0]
+        hub_y: int = hub_coords[1]
+        ret_x: int = hub_x + (int(hub_size / 2)) - (int(drone_size / 2))
+        ret_y: int = hub_y + (int(hub_size / 2)) - (int(drone_size / 2))
+        return (int(ret_x), int(ret_y))

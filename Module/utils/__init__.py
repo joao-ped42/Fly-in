@@ -1,8 +1,8 @@
-from .Hub import Hub
-from .Drone import Drone
+from ..objs.Hub import Hub
+from ..objs.Drone import Drone
+from ..objs.Connection import Connection
 from .Parser import Parser
 from .Adjuster import Adjuster
-from .Connection import Connection
 from .Exceptions import HubSobrepositionError, HubError
 from .Exceptions import ConnectionError, MetadataError, FactoryError
 
