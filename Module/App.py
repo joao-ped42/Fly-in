@@ -48,7 +48,7 @@ class App:
                                                      (138, 28, 31)),
                                       "skyblock": ((51, 36, 21),
                                                    (255, 255, 255)),
-                                      "tokyo_ghoul": ((84, 235, 232),
+                                      "tokyo_ghoul": ((0, 0, 0),
                                                       (10, 16, 138)),
                                       "latios_flying": ((44, 171, 74),
                                                         (161, 93, 31)),
@@ -121,6 +121,7 @@ class App:
         font: pygame.Font = pygame.font.SysFont("Consolas", 50, bold=True)
         _counter: int = 0
         turn: int = 0
+        direction: str = "right"
         while (self.running):
             bet: int = choice(range(100000))
             if ((bet == 67) and (_counter == 0)):
@@ -139,7 +140,7 @@ class App:
                         menu_sound: Sound = Sound("src/menu_pause.wav")
                         menu_sound.set_volume(0.5)
                         menu_sound.play()
-                        self.__place_menu(sound_text)
+                        self.__place_menu(sound_text, direction)
                         menu_sound.play()
                         pygame.mixer.music.unpause()
                     if (event.key == pygame.K_m):
@@ -170,37 +171,49 @@ class App:
                         if (recent_coords == center(hub_size,
                                                     drone_size,
                                                     hub_coords)):
-                            try:
-                                sol_index += 1
-                                hub = self.solution[sol_index][1]
-                                if (hub.zone == "restricted"):
-                                    turn += 2
-                                else:
-                                    turn += 1
-                                recent_hub = drone.current_hub
-                                drone.move_to_hub(hub)
-                            except IndexError:
-                                pass
+                            if (sol_index < len(self.solution) - 1):
+                                try:
+                                    sol_index += 1
+                                    hub = self.solution[sol_index][1]
+                                    if (drone.current_hub.coordinates[0]
+                                            < hub.coordinates[0]):
+                                        direction = "right"
+                                    if (hub.zone == "restricted"):
+                                        turn += 2
+                                    else:
+                                        turn += 1
+                                    recent_hub = drone.current_hub
+                                    drone.move_to_hub(hub)
+                                except IndexError:
+                                    pass
                     elif (event.key == pygame.K_LEFT):
                         hub_coords = (drone.norm_x, drone.norm_y)
-                        fuck: Coord = drone.current_hub.norm_coord
+                        n_coord: Coord = drone.current_hub.norm_coord
                         if (hub_coords == center(hub_size,
                                                  drone.drone_size,
-                                                 fuck)):
-                            if (sol_index != 0):
-                                if (drone.current_hub.zone == "restricted"):
-                                    turn -= 2
-                                else:
-                                    turn -= 1
-                                sol_index -= 1
-                                hub = self.solution[sol_index][1]
-                                drone.move_to_hub(hub)
+                                                 n_coord)):
+                            try:
+                                if (sol_index > 0):
+                                    zone: str = drone.current_hub.zone
+                                    if (zone == "restricted"):
+                                        turn -= 2
+                                    else:
+                                        turn -= 1
+                                    recent_hub = drone.current_hub
+                                    sol_index -= 1
+                                    hub = self.solution[sol_index][1]
+                                    if (drone.current_hub.coordinates[0] >
+                                            hub.coordinates[0]):
+                                        direction = "letf"
+                                    drone.move_to_hub(hub)
+                            except IndexError:
+                                pass
             self.graph_frame.blit(self.bg_img)
             self.__move_drone(drone, recent_hub)
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()
-            self.__place_drones()
+            self.__place_drones(direction)
             self.__place_sound(sound_text)
             self.__place_turn(turn_text)
             self.virtual_screen.blit(self.graph_frame, (0, 0))
@@ -248,10 +261,10 @@ class App:
                              (start_coord_x2, start_coord_y2),
                              int(img_size / 10))
 
-    def __place_drones(self) -> None:
+    def __place_drones(self, direction: str) -> None:
         for drone in self.scenario.drones:
             dest: tuple[int, int] = (drone.norm_x, drone.norm_y)
-            self.graph_frame.blit(drone.get_sprite(), dest)
+            self.graph_frame.blit(drone.get_sprite(direction), dest)
 
     def __place_sound(self, text: Surface) -> None:
         sound_coords: Coord = ((self.virtual_screen.get_width())
@@ -268,7 +281,7 @@ class App:
                 break
         self.graph_frame.blit(text, (0, turn_y))
 
-    def __place_menu(self, text: Surface) -> None:
+    def __place_menu(self, text: Surface, direction: str) -> None:
         display.flip()
         menu: bool = True
         screen_w: int = self.virtual_screen.get_width()
@@ -284,7 +297,7 @@ class App:
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()
-            self.__place_drones()
+            self.__place_drones(direction)
             self.__place_sound(text)
             self.menu.blit(menu_img, (0, 0))
             self.graph_frame.blit(menu_img, dest)

@@ -1,4 +1,4 @@
-from math import exp, sqrt
+from math import exp
 
 
 class Adjuster:
@@ -32,9 +32,10 @@ class Adjuster:
     def size_adjuster(image_w: int, surface_w: int, total_hubs: int) -> int:
         def f(x: int) -> float:
             return (300 * (1 - exp(-0.45 * x)))
-
         var: float = ((surface_w - (total_hubs - 1))
                       / (total_hubs * (image_w + f(total_hubs))))
+        if (var * image_w) < 50:
+            return 50
         return (int((image_w * var)))
 
     @staticmethod
@@ -45,12 +46,12 @@ class Adjuster:
                        past_hub_coords: tuple[int, int]) -> tuple[int, int]:
         delta_x: int = next_x - current_x
         delta_y: int = next_y - current_y
-        con_length: float = sqrt((next_x - past_hub_coords[0]) ** 2
-                                 + (next_y - past_hub_coords[1]) ** 2)
-        vel: float = 3/100 * con_length
+        vel: float = 70.2
         if (delta_x != 0 and delta_y != 0):
             delta: float = (delta_y / delta_x)
             ret_y: float = vel * delta
+            if (delta_x < 0):
+                return ((int(-vel), int(-ret_y)))
             return ((int(vel), int(ret_y)))
         if (delta_x == 0):
             if (delta_y < 0):

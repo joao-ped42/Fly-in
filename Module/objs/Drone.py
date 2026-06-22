@@ -22,15 +22,17 @@ class Drone:
                                                      (hub.norm_coord[0],
                                                       hub.norm_coord[1]))[1]
 
-    def get_sprite(self) -> Surface:
+    def get_sprite(self, direction: str) -> Surface:
         i: int = int(self.sprite_index)
         sprites_len: int = len(self.sprite_list)
         img: Surface = image.load(self.sprite_list[i % (sprites_len - 1)])
         resize: Surface = transform.scale(img, (self.drone_size,
                                                 self.drone_size))
-        ret: Surface = transform.flip(resize, True, False)
         self.sprite_index += 0.7
-        return (ret)
+        if (self.pokemon != 'sonic/shiny' and direction == "right"):
+            ret: Surface = transform.flip(resize, True, False)
+            return (ret)
+        return (resize)
 
     def move(self, plus_x: int, plus_y: int) -> None:
         hub_size: int = self.current_hub.sprite.get_width()
@@ -42,6 +44,8 @@ class Drone:
                                                                hub_coords)
         if (plus_x >= 0 and self.norm_x + plus_x > new_coord[0]):
             plus_x = new_coord[0] - self.norm_x
+            print("plus_x =", plus_x)
+            print("plus_y =", plus_y)
         if (plus_y >= 0 and self.norm_y + plus_y > new_coord[1]):
             plus_y = new_coord[1] - self.norm_y
         elif ((plus_x != 0) and
@@ -57,8 +61,7 @@ class Drone:
     def move_to_hub(self, new_hub: Hub) -> None:
         self.current_hub = new_hub
 
-    @staticmethod
-    def __get_sprites() -> list[str]:
+    def __get_sprites(self) -> list[str]:
         sprites: list[str] = ["abra",
                               "aerodactyl",
                               "archeops",
@@ -73,7 +76,13 @@ class Drone:
                               "quaquaval",
                               "sonic"]
         sprite_list: list[str] = []
-        folder: str = f"src/drones/{choice(sprites)}"
+        self.pokemon: str = choice(sprites)
+        if ((self.pokemon not in ['clefable',
+                                  'bombirdier',
+                                  'dragonite']) and
+                choice(range(4096)) == 67):
+            self.pokemon += '/shiny'
+        folder: str = f"src/drones/{self.pokemon}"
         for sprite in os.listdir(folder):
             full_path: str = os.path.join(folder, sprite)
             if os.path.isfile(full_path):
