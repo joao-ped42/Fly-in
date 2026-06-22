@@ -6,9 +6,11 @@ import os
 import pygame
 from time import sleep
 from random import choice
-from typing import Iterator
+from pygame.mixer import Sound
 from collections.abc import Callable
-from pygame import (display, image, time, transform, Surface, RESIZABLE, mixer)
+from pygame import (display, image, time,
+                    transform, Surface, RESIZABLE,
+                    mixer)
 
 
 class App:
@@ -20,6 +22,7 @@ class App:
         display.set_caption("Fly-in")
         display.set_icon(image.load("src/icon.png"))
         self.scenario: Scenario = scenario
+        self.solution: Path = self.scenario.solved_path()
         self.screen: Surface = display.set_mode((screen_w, screen_h),
                                                 RESIZABLE)
         self.virtual_screen: Surface = Surface((screen_w, screen_h))
@@ -59,6 +62,8 @@ class App:
         self.bg_img: Surface = image.load(f"src/bg_img/{bg_choice[0]}.png")
         self.text_color: Color = bg_choice[1][0]
         self.connec_color: Color = bg_choice[1][1]
+        self.menu: Surface = Surface((self.virtual_screen.get_width() / 2,
+                                      self.virtual_screen.get_height() * 3/4))
         self.music: str = bg_choice[0]
         self.running: bool = True
 
@@ -98,62 +103,108 @@ class App:
                 display.flip()
                 self.graph_frame.blit(self.bg_img, (0, 0))
                 self.virtual_screen.blit(self.graph_frame, (0, 0))
-                sound_coords: Coord = (s_w - text.get_width(), 0)
-                self.virtual_screen.blit(text, sound_coords)
+                self.__place_sound(sound_text)
                 self.virtual_screen.blit(overlay, (0, 0))
             sound.stop()
             pygame.mixer.music.set_volume(0.2)
         mixer.music.load(f"src/msc/{self.music}.mp3")
         mixer.music.set_volume(0.2)
-        print(mixer.music.get_volume())
         clock: time.Clock = time.Clock()
         drone: Drone = self.scenario.drones[0]
-        solution: Path = self.scenario.solved_path()
         drone_size: int = drone.drone_size
         hub_size: int = self.scenario.hubs[0].sprite.get_width()
-        coords_gen: Iterator[tuple[tuple[int, int], Hub]] = iter(solution)
+        sol_index: int = 0
         center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
-        try:
-            recent_hub: Hub = next(coords_gen)[1]
-            hub: Hub = next(coords_gen)[1]
-            drone.move_to_hub(hub)
-        except Exception:
-            pass
+        recent_hub: Hub = self.scenario.get_start_hub()
         pygame.mixer.music.play(-1)
         sound: str = "On"
         font: pygame.Font = pygame.font.SysFont("Consolas", 50, bold=True)
         _counter: int = 0
-        # _()
+        turn: int = 0
         while (self.running):
-            bet: int = choice(range(10000))
+            bet: int = choice(range(100000))
             if ((bet == 67) and (_counter == 0)):
                 _()
                 _counter += 1
-            text: Surface = font.render(f"Sound: {sound}",
-                                        True, self.text_color)
-            sound = self.__get_event()
+            sound_text: Surface = font.render(f"Sound: {sound}",
+                                              True, self.text_color)
+            turn_text: Surface = font.render(f"Turn: {turn}",
+                                             True, self.text_color)
+            for event in pygame.event.get():
+                if (event.type == pygame.QUIT):
+                    self.running = False
+                elif (event.type == pygame.KEYDOWN):
+                    if (event.key == pygame.K_SPACE):
+                        pygame.mixer.music.pause()
+                        menu_sound: Sound = Sound("src/menu_pause.wav")
+                        menu_sound.set_volume(0.5)
+                        menu_sound.play()
+                        self.__place_menu(sound_text)
+                        menu_sound.play()
+                        pygame.mixer.music.unpause()
+                    if (event.key == pygame.K_m):
+                        if (pygame.mixer.music.get_volume() > 0):
+                            pygame.mixer.music.set_volume(0)
+                            sound = "Off"
+                        else:
+                            pygame.mixer.music.set_volume(0.2)
+                            sound = "On"
+                    elif (event.key == pygame.K_KP_MINUS):
+                        volume: float = pygame.mixer.music.get_volume()
+                        new: float = max(0.0, volume - 0.1)
+                        pygame.mixer.music.set_volume(new)
+                        if (new == 0):
+                            sound = "Off"
+                    elif (event.key == pygame.K_KP_PLUS):
+                        volume = pygame.mixer.music.get_volume()
+                        new = min(2.0, volume + 0.1)
+                        pygame.mixer.music.set_volume(new)
+                        sound = "On"
+                    elif (event.key == pygame.K_ESCAPE):
+                        self.running = False
+                    elif (event.key == pygame.K_RIGHT):
+                        if (choice(range(100)) == 67):
+                            _()
+                        hub_coords: Coord = drone.current_hub.norm_coord
+                        recent_coords: Coord = (drone.norm_x, drone.norm_y)
+                        if (recent_coords == center(hub_size,
+                                                    drone_size,
+                                                    hub_coords)):
+                            try:
+                                sol_index += 1
+                                hub = self.solution[sol_index][1]
+                                if (hub.zone == "restricted"):
+                                    turn += 2
+                                else:
+                                    turn += 1
+                                recent_hub = drone.current_hub
+                                drone.move_to_hub(hub)
+                            except IndexError:
+                                pass
+                    elif (event.key == pygame.K_LEFT):
+                        hub_coords = (drone.norm_x, drone.norm_y)
+                        fuck: Coord = drone.current_hub.norm_coord
+                        if (hub_coords == center(hub_size,
+                                                 drone.drone_size,
+                                                 fuck)):
+                            if (sol_index != 0):
+                                if (drone.current_hub.zone == "restricted"):
+                                    turn -= 2
+                                else:
+                                    turn -= 1
+                                sol_index -= 1
+                                hub = self.solution[sol_index][1]
+                                drone.move_to_hub(hub)
             self.graph_frame.blit(self.bg_img)
             self.__move_drone(drone, recent_hub)
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()
             self.__place_drones()
+            self.__place_sound(sound_text)
+            self.__place_turn(turn_text)
             self.virtual_screen.blit(self.graph_frame, (0, 0))
-            sound_coords: Coord = ((self.virtual_screen.get_width())
-                                   - text.get_width(), 0)
-            self.virtual_screen.blit(text, sound_coords)
-            self.resize()
-            if ((drone.norm_x, drone.norm_y) == center(hub_size, drone_size,
-                                                       drone.current_hub
-                                                       .norm_coord)):
-                try:
-                    hub = next(coords_gen)[1]
-                    # print(f"next_hub = {hub.name}")
-                    recent_hub = drone.current_hub
-                    drone.move_to_hub(hub)
-                except StopIteration:
-                    pass
-            # print(f"drone_coords: {(drone.norm_x, drone.norm_y)}")
+            self.__resize()
             display.flip()
             self.virtual_screen.fill((0, 0, 0))
             # sleep(0.05)
@@ -194,12 +245,59 @@ class App:
             pygame.draw.line(self.graph_frame,
                              self.connec_color,
                              (start_coord_x1, start_coord_y1),
-                             (start_coord_x2, start_coord_y2), 3)
+                             (start_coord_x2, start_coord_y2),
+                             int(img_size / 10))
 
     def __place_drones(self) -> None:
         for drone in self.scenario.drones:
             dest: tuple[int, int] = (drone.norm_x, drone.norm_y)
             self.graph_frame.blit(drone.get_sprite(), dest)
+
+    def __place_sound(self, text: Surface) -> None:
+        sound_coords: Coord = ((self.virtual_screen.get_width())
+                               - text.get_width(), 0)
+        self.graph_frame.blit(text, sound_coords)
+
+    def __place_turn(self, text: Surface) -> None:
+        turn_y: int = 0
+        for hub in self.scenario.hubs:
+            if (hub.norm_coord == (0, 0)):
+                graph_h: int = self.graph_frame.get_height()
+                text_h: int = text.get_height()
+                turn_y = graph_h - text_h
+                break
+        self.graph_frame.blit(text, (0, turn_y))
+
+    def __place_menu(self, text: Surface) -> None:
+        display.flip()
+        menu: bool = True
+        screen_w: int = self.virtual_screen.get_width()
+        screen_h: int = self.virtual_screen.get_height()
+        menu_w: int = self.menu.get_width()
+        menu_h: int = self.menu.get_height()
+        dest: Coord = (int(screen_w / 2 - menu_w / 2),
+                       int(screen_h / 2 - menu_h / 2))
+        while (menu):
+            menu_img: Surface = image.load("src/menu.png")
+            menu_img.set_colorkey((128, 64, 0))
+            self.graph_frame.blit(self.bg_img)
+            self.__place_connections()
+            self.__place_hubs()
+            self.__place_hub_names()
+            self.__place_drones()
+            self.__place_sound(text)
+            self.menu.blit(menu_img, (0, 0))
+            self.graph_frame.blit(menu_img, dest)
+            self.virtual_screen.blit(self.graph_frame, (0, 0))
+            self.__resize()
+            for event in pygame.event.get():
+                if (event.type == pygame.QUIT):
+                    pygame.quit()
+                    exit(0)
+                if (event.type == pygame.KEYDOWN):
+                    if (event.key in [pygame.K_SPACE, pygame.K_ESCAPE]):
+                        menu = False
+            display.flip()
 
     def __move_drone(self, drone: Drone, hub: Hub) -> None:
         hub_size: int = drone.current_hub.sprite.get_height()
@@ -224,40 +322,9 @@ class App:
                                                norm_coord)
             drone.move(move_values[0], move_values[1])
 
-    def resize(self) -> None:
+    def __resize(self) -> None:
         current_w: int = self.screen.get_width()
         current_h: int = self.screen.get_height()
         scaled: Surface = transform.scale(self.virtual_screen,
                                           (current_w, current_h))
         self.screen.blit(scaled)
-
-    def __get_event(self) -> str:
-        sound: str = "On"
-        if (pygame.mixer.music.get_volume() == 0):
-            sound = "Off"
-        for event in pygame.event.get():
-            if (event.type == pygame.QUIT):
-                self.running = False
-            elif (event.type == pygame.KEYDOWN):
-                if (event.key == pygame.K_m):
-                    if (pygame.mixer.music.get_volume() > 0):
-                        pygame.mixer.music.set_volume(0)
-                        sound = "Off"
-                    else:
-                        pygame.mixer.music.set_volume(0.2)
-                        sound = "On"
-                elif (event.key == pygame.K_KP_MINUS):
-                    volume: float = pygame.mixer.music.get_volume()
-                    new: float = max(0.0, volume - 0.1)
-                    pygame.mixer.music.set_volume(new)
-                    if (new == 0):
-                        sound = "Off"
-                elif (event.key == pygame.K_KP_PLUS):
-                    volume = pygame.mixer.music.get_volume()
-                    print(volume)
-                    new = min(2.0, volume + 0.1)
-                    pygame.mixer.music.set_volume(new)
-                    sound = "On"
-                elif (event.key == pygame.K_ESCAPE):
-                    self.running = False
-        return (sound)

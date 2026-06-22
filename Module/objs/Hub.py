@@ -17,7 +17,7 @@ class Hub:
                 "Start and goal can't have the same coordinates"
                 )
         self.name: str = name
-        self.coordinates: tuple[int, int] = (x, y * -1)
+        self.coordinates: tuple[int, int] = (x, y * (-1))
         self.zone: str = "normal"
         self.max_drones: int = 1
         img: Surface = load("src/hubs/rainbow.png")

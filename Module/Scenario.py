@@ -44,11 +44,19 @@ class Scenario:
             return ([])
         ret: Hubs = []
         for connection in self.connections:
-            if (connection.point1.name == hub.name):
+            if ((connection.point1.name == hub.name) and
+                    (connection.point1.zone != "blocked")):
                 ret.append(connection.point2)
-            elif (connection.point2.name == hub.name):
-                ret.append(connection.point1)
+            # elif ((connection.point2.name == hub.name) and
+            #         (connection.point2.zone != "blocked")):
+            #     ret.append(connection.point1)
         return (ret)
+
+    def verify_priority(self, hubs: Hubs) -> bool:
+        for hub in hubs:
+            if (hub.zone == "priority"):
+                return (True)
+        return (False)
 
     def solved_path(self) -> Path:
         start: Hub = self.get_start_hub()
@@ -63,6 +71,9 @@ class Scenario:
                 break
             neighbors: Hubs = self.visitable_neighbours(current_hub)
             for neighbor in neighbors:
+                if (self.verify_priority(neighbors) and
+                        neighbor.zone != "priority"):
+                    continue
                 if (neighbor in visited):
                     continue
                 visited.add(neighbor)

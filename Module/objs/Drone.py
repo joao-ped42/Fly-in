@@ -40,8 +40,6 @@ class Drone:
         new_coord: tuple[int, int] = Adjuster.centralize_drone(hub_size,
                                                                img_size,
                                                                hub_coords)
-        # print("plus_x =", plus_x)
-        # print("plus_y =", plus_y)
         if (plus_x >= 0 and self.norm_x + plus_x > new_coord[0]):
             plus_x = new_coord[0] - self.norm_x
         if (plus_y >= 0 and self.norm_y + plus_y > new_coord[1]):
@@ -49,13 +47,10 @@ class Drone:
         elif ((plus_x != 0) and
               (self.norm_x + plus_x == new_coord[0]) and
               (self.norm_y + plus_y != new_coord[1])):
-            # print("plus_x =", plus_x)
-            # print("plus_y =", plus_y)
             if (new_coord[1] > self.norm_y):
                 plus_y = (new_coord[1] - self.norm_y)
             else:
                 plus_y = (-self.norm_y + new_coord[1])
-            # print("plus_y =", plus_y)
         self.norm_x += plus_x
         self.norm_y += plus_y
 

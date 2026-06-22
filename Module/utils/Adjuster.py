@@ -17,15 +17,15 @@ class Adjuster:
             graph_h = 1
         scale_x: float = screen_w / graph_w
         scale_y: float = screen_h / graph_h
-        scale: float = min(scale_x, scale_y)
+        scale_y = min(scale_x, scale_y)
         graph_center_x: float = ((max_x + min_x) / 2)
         graph_center_y: float = (max_y + min_y) / 2
         screen_center_x: float = screen_w / 2
         screen_center_y: float = screen_h / 2
         screen_x: int = int((coord[0] - graph_center_x)
-                            * scale + screen_center_x)
+                            * scale_x + screen_center_x)
         screen_y: int = int((coord[1] - graph_center_y)
-                            * scale + screen_center_y)
+                            * scale_y + screen_center_y)
         return (int(screen_x), int(screen_y))
 
     @staticmethod
@@ -47,15 +47,10 @@ class Adjuster:
         delta_y: int = next_y - current_y
         con_length: float = sqrt((next_x - past_hub_coords[0]) ** 2
                                  + (next_y - past_hub_coords[1]) ** 2)
-        # print("con_length =", con_length)
-        vel: float = 2/100 * con_length
+        vel: float = 3/100 * con_length
         if (delta_x != 0 and delta_y != 0):
-            if (delta_x > delta_y):
-                delta: float = (delta_y / delta_x)
-            else:
-                delta = (delta_x / delta_y)
+            delta: float = (delta_y / delta_x)
             ret_y: float = vel * delta
-            # print(f"ret_y = {ret_y}")
             return ((int(vel), int(ret_y)))
         if (delta_x == 0):
             if (delta_y < 0):
