@@ -46,7 +46,7 @@ class Adjuster:
                        past_hub_coords: tuple[int, int]) -> tuple[int, int]:
         delta_x: int = next_x - current_x
         delta_y: int = next_y - current_y
-        vel: float = 70.2
+        vel: float = 35
         if (delta_x != 0 and delta_y != 0):
             delta: float = (delta_y / delta_x)
             ret_y: float = vel * delta

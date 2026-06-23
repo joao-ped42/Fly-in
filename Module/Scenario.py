@@ -1,5 +1,5 @@
 from .utils import Drone, Hub, HubError
-from .Types import Hubs, Connecs, Paths
+from .Types import Hubs, Connecs, Path, Paths
 
 
 class Scenario:
@@ -87,20 +87,20 @@ class Scenario:
             return ([])
         ret: Paths = []
         for i in range(len(self.drones)):
-            path: Hubs = []
+            path: Path = []
             current_hub = end
             while (current_hub is not None):
                 path.append(current_hub)
                 current_hub = previous[current_hub]
-            path += ([None] * i)
+            path = ([None] * i) + path + ([None] * i)
             path.reverse()
-            for hub in path:
-                if hub == None:
-                    print("hub.name = None ", end="")
-                else:
-                    print("hub.name =", hub.name, " ", end="")
-            print()
-            print(f"=================={i}=================")
+            # for hub in path:
+            #     if hub == None:
+            #         print("hub.name = None ", end="")
+            #     else:
+            #         print("hub.name =", hub.name, " ", end="")
+            # print()
+            # print(f"=================={i}=================")
             # if ((not (path)) or (path[0][1] != start)):
             #     return ([])
             ret.append(path)

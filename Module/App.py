@@ -1,7 +1,7 @@
 from .objs.Hub import Hub
 from .Scenario import Scenario
 from .utils import Drone, Adjuster
-from .Types import Colors, Color, Paths, Coord, Hubs
+from .Types import Colors, Color, Paths, Coord, Path
 import os
 import pygame
 from time import sleep
@@ -112,7 +112,6 @@ class App:
         clock: time.Clock = time.Clock()
         drone_size: int = self.scenario.drones[0].drone_size
         hub_size: int = self.scenario.hubs[0].sprite.get_width()
-        sol_index: int = 0
         center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
         recent_hub: Hub = self.scenario.get_start_hub()
         pygame.mixer.music.play(-1)
@@ -166,54 +165,80 @@ class App:
                     elif (event.key == pygame.K_RIGHT):
                         if (choice(range(100)) == 67):
                             _()
+                        # turn_plus: int = 0
                         for i in range(len(self.solution)):
                             drone: Drone = self.scenario.drones[i]
-                            sol: Hubs = self.solution[i]
+                            sol: Path = self.solution[i]
+                            # if (drone.sol_index + 1 < len(sol)):
+                            drone.sol_index += 1
+                            # else:
+                            #     continue
+                            # for hub in sol:
+                            #     if (hub is not None):
+                            #         print(hub.name)
                             hub_coords: Coord = drone.current_hub.norm_coord
                             recent_coords: Coord = (drone.norm_x, drone.norm_y)
                             if (recent_coords == center(hub_size,
                                                         drone_size,
                                                         hub_coords)):
-                                if (sol_index < len(sol) - 1):
-                                    try:
-                                        sol_index += 1
-                                        hub = sol[sol_index]
-                                        if (drone.current_hub.coordinates[0]
-                                                < hub.coordinates[0]):
-                                            direction = "right"
-                                        if (hub.zone == "restricted"):
-                                            turn += 2
-                                        else:
-                                            turn += 1
-                                        recent_hub = drone.current_hub
-                                        drone.move_to_hub(hub)
-                                    except IndexError:
-                                        pass
+                                # if (drone.sol_index < len(sol)):
+                                #     # try:
+                                try:
+                                    hub = sol[drone.sol_index]
+                                except IndexError:
+                                    continue
+                                if (hub is not None):
+                                    # print("hub =", hub.name)
+                                    if (drone.current_hub.coordinates[0]
+                                            < hub.coordinates[0]):
+                                        direction = "right"
+                                    # if (hub.zone == "restricted"):
+                                    #     turn_plus = 2
+                                    # else:
+                                    #     turn_plus = 1
+                                    recent_hub = drone.current_hub
+                                    drone.move_to_hub(hub)
+                                    # except IndexError:
+                                    #     pass
+                        # turn += turn_plus
+                        # print()
                     elif (event.key == pygame.K_LEFT):
+                        # turn_plus = 0
                         for i in range(len(self.solution)):
                             drone = self.scenario.drones[i]
                             sol = self.solution[i]
+                            # print("drone.sol_index =", drone.sol_index)
+                            # if (drone.sol_index > 0):
+                            drone.sol_index -= 1
+                            # else:
+                            #     continue
                             hub_coords = (drone.norm_x, drone.norm_y)
                             n_coord: Coord = drone.current_hub.norm_coord
                             if (hub_coords == center(hub_size,
-                                                    drone.drone_size,
-                                                    n_coord)):
+                                                     drone.drone_size,
+                                                     n_coord)):
+                                # try:
+                                # if (drone.sol_index >= 0):
+                                # zone: str = drone.current_hub.zone
+                                # if (zone == "restricted"):
+                                #    # if (turn > 1):
+                                #        # turn_plus = -2
+                                # else:
+                                #    # turn_plus = -1
+                                recent_hub = drone.current_hub
                                 try:
-                                    if (sol_index > 0):
-                                        zone: str = drone.current_hub.zone
-                                        if (zone == "restricted"):
-                                            turn -= 2
-                                        else:
-                                            turn -= 1
-                                        recent_hub = drone.current_hub
-                                        sol_index -= 1
-                                        hub = sol[sol_index]
-                                        if (drone.current_hub.coordinates[0] >
-                                                hub.coordinates[0]):
-                                            direction = "left"
-                                        drone.move_to_hub(hub)
+                                    hub = sol[drone.sol_index]
                                 except IndexError:
-                                    pass
+                                    continue
+                                if (hub is not None):
+                                    # print("hub =", hub.name)
+                                    if (drone.current_hub.coordinates[0] >
+                                            hub.coordinates[0]):
+                                        direction = "left"
+                                    drone.move_to_hub(hub)
+                                # except IndexError:
+                                #     pass
+                        # turn += turn_plus
             self.graph_frame.blit(self.bg_img)
             for recent_drone in self.scenario.drones:
                 if (not recent_drone.waiting):
@@ -268,6 +293,11 @@ class App:
                              (start_coord_x1, start_coord_y1),
                              (start_coord_x2, start_coord_y2),
                              int(img_size / 10))
+            pygame.draw.line(self.graph_frame,
+                             (255, 255, 255),
+                             (start_coord_x1, start_coord_y1),
+                             (start_coord_x2, start_coord_y2),
+                             int(img_size / 25))
 
     def __place_drones(self, direction: str) -> None:
         for drone in self.scenario.drones:
@@ -349,3 +379,15 @@ class App:
         scaled: Surface = transform.scale(self.virtual_screen,
                                           (current_w, current_h))
         self.screen.blit(scaled)
+
+    def display_solution(self) -> None:
+        path_num: int = 1
+        for path in self.solution:
+            print(f"================Path {path_num}================")
+            for i in range(len(path)):
+                hub: Hub | None = path[i]
+                if (isinstance(hub, Hub)):
+                    print(f"{i + 1}. {hub.name}")
+                else:
+                    print(f"{i + 1}. Waiting...")
+            path_num += 1

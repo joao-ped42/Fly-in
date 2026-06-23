@@ -22,6 +22,7 @@ class Drone:
                                                      (hub.norm_coord[0],
                                                       hub.norm_coord[1]))[1]
         self.waiting: bool = True
+        self.sol_index: int = 0
 
     def get_sprite(self, direction: str) -> Surface:
         i: int = int(self.sprite_index)
@@ -45,8 +46,8 @@ class Drone:
                                                                hub_coords)
         if (plus_x >= 0 and self.norm_x + plus_x > new_coord[0]):
             plus_x = new_coord[0] - self.norm_x
-            print("plus_x =", plus_x)
-            print("plus_y =", plus_y)
+            # print("plus_x =", plus_x)
+            # print("plus_y =", plus_y)
         if (plus_y >= 0 and self.norm_y + plus_y > new_coord[1]):
             plus_y = new_coord[1] - self.norm_y
         elif ((plus_x != 0) and
@@ -60,7 +61,12 @@ class Drone:
         self.norm_y += plus_y
 
     def move_to_hub(self, new_hub: Hub) -> None:
-        self.current_hub = new_hub
+        if (self.current_hub != new_hub):
+            self.current_hub = new_hub
+        if ((not (new_hub.is_start)) and (self.waiting)):
+            self.waiting = False
+        # elif ((new_hub.is_end) and (not (self.waiting))):
+        #     self.waiting = True
 
     def __get_sprites(self) -> list[str]:
         sprites: list[str] = ["abra",
