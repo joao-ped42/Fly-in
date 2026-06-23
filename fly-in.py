@@ -13,7 +13,6 @@ def main() -> None:
         naruto: Scenario = Factory().read_file(argv[1],
                                                screen_width,
                                                screen_height)
-        naruto.solved_path()
         app: App = App(naruto, screen_width, screen_height)
         app.scenario.visitable_neighbours(app.scenario.hubs[0])
         app.run()

@@ -1,7 +1,7 @@
 from .objs.Hub import Hub
 from .Scenario import Scenario
 from .utils import Drone, Adjuster
-from .Types import Colors, Color, Path, Coord
+from .Types import Colors, Color, Paths, Coord, Hubs
 import os
 import pygame
 from time import sleep
@@ -22,7 +22,7 @@ class App:
         display.set_caption("Fly-in")
         display.set_icon(image.load("src/icon.png"))
         self.scenario: Scenario = scenario
-        self.solution: Path = self.scenario.solved_path()
+        self.solution: Paths = self.scenario.solved_path()
         self.screen: Surface = display.set_mode((screen_w, screen_h),
                                                 RESIZABLE)
         self.virtual_screen: Surface = Surface((screen_w, screen_h))
@@ -110,8 +110,7 @@ class App:
         mixer.music.load(f"src/msc/{self.music}.mp3")
         mixer.music.set_volume(0.2)
         clock: time.Clock = time.Clock()
-        drone: Drone = self.scenario.drones[0]
-        drone_size: int = drone.drone_size
+        drone_size: int = self.scenario.drones[0].drone_size
         hub_size: int = self.scenario.hubs[0].sprite.get_width()
         sol_index: int = 0
         center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
@@ -122,6 +121,7 @@ class App:
         _counter: int = 0
         turn: int = 0
         direction: str = "right"
+        self.scenario.drones[0].waiting = False
         while (self.running):
             bet: int = choice(range(100000))
             if ((bet == 67) and (_counter == 0)):
@@ -166,50 +166,58 @@ class App:
                     elif (event.key == pygame.K_RIGHT):
                         if (choice(range(100)) == 67):
                             _()
-                        hub_coords: Coord = drone.current_hub.norm_coord
-                        recent_coords: Coord = (drone.norm_x, drone.norm_y)
-                        if (recent_coords == center(hub_size,
-                                                    drone_size,
-                                                    hub_coords)):
-                            if (sol_index < len(self.solution) - 1):
+                        for i in range(len(self.solution)):
+                            drone: Drone = self.scenario.drones[i]
+                            sol: Hubs = self.solution[i]
+                            hub_coords: Coord = drone.current_hub.norm_coord
+                            recent_coords: Coord = (drone.norm_x, drone.norm_y)
+                            if (recent_coords == center(hub_size,
+                                                        drone_size,
+                                                        hub_coords)):
+                                if (sol_index < len(sol) - 1):
+                                    try:
+                                        sol_index += 1
+                                        hub = sol[sol_index]
+                                        if (drone.current_hub.coordinates[0]
+                                                < hub.coordinates[0]):
+                                            direction = "right"
+                                        if (hub.zone == "restricted"):
+                                            turn += 2
+                                        else:
+                                            turn += 1
+                                        recent_hub = drone.current_hub
+                                        drone.move_to_hub(hub)
+                                    except IndexError:
+                                        pass
+                    elif (event.key == pygame.K_LEFT):
+                        for i in range(len(self.solution)):
+                            drone = self.scenario.drones[i]
+                            sol = self.solution[i]
+                            hub_coords = (drone.norm_x, drone.norm_y)
+                            n_coord: Coord = drone.current_hub.norm_coord
+                            if (hub_coords == center(hub_size,
+                                                    drone.drone_size,
+                                                    n_coord)):
                                 try:
-                                    sol_index += 1
-                                    hub = self.solution[sol_index][1]
-                                    if (drone.current_hub.coordinates[0]
-                                            < hub.coordinates[0]):
-                                        direction = "right"
-                                    if (hub.zone == "restricted"):
-                                        turn += 2
-                                    else:
-                                        turn += 1
-                                    recent_hub = drone.current_hub
-                                    drone.move_to_hub(hub)
+                                    if (sol_index > 0):
+                                        zone: str = drone.current_hub.zone
+                                        if (zone == "restricted"):
+                                            turn -= 2
+                                        else:
+                                            turn -= 1
+                                        recent_hub = drone.current_hub
+                                        sol_index -= 1
+                                        hub = sol[sol_index]
+                                        if (drone.current_hub.coordinates[0] >
+                                                hub.coordinates[0]):
+                                            direction = "left"
+                                        drone.move_to_hub(hub)
                                 except IndexError:
                                     pass
-                    elif (event.key == pygame.K_LEFT):
-                        hub_coords = (drone.norm_x, drone.norm_y)
-                        n_coord: Coord = drone.current_hub.norm_coord
-                        if (hub_coords == center(hub_size,
-                                                 drone.drone_size,
-                                                 n_coord)):
-                            try:
-                                if (sol_index > 0):
-                                    zone: str = drone.current_hub.zone
-                                    if (zone == "restricted"):
-                                        turn -= 2
-                                    else:
-                                        turn -= 1
-                                    recent_hub = drone.current_hub
-                                    sol_index -= 1
-                                    hub = self.solution[sol_index][1]
-                                    if (drone.current_hub.coordinates[0] >
-                                            hub.coordinates[0]):
-                                        direction = "letf"
-                                    drone.move_to_hub(hub)
-                            except IndexError:
-                                pass
             self.graph_frame.blit(self.bg_img)
-            self.__move_drone(drone, recent_hub)
+            for recent_drone in self.scenario.drones:
+                if (not recent_drone.waiting):
+                    self.__move_drone(recent_drone, recent_hub)
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()

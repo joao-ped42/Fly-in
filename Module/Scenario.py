@@ -1,5 +1,5 @@
 from .utils import Drone, Hub, HubError
-from .Types import Hubs, Connecs, Path
+from .Types import Hubs, Connecs, Paths
 
 
 class Scenario:
@@ -58,7 +58,7 @@ class Scenario:
                 return (True)
         return (False)
 
-    def solved_path(self) -> Path:
+    def solved_path(self) -> Paths:
         start: Hub = self.get_start_hub()
         end: Hub = self.get_end_hub()
         queue: Hubs = [start]
@@ -70,6 +70,9 @@ class Scenario:
             if (current_hub == end):
                 break
             neighbors: Hubs = self.visitable_neighbours(current_hub)
+            # for neighbor in neighbors:
+            #     for drone in self.drones:
+            #         if (drone.current_hub == neighbor):
             for neighbor in neighbors:
                 if (self.verify_priority(neighbors) and
                         neighbor.zone != "priority"):
@@ -82,14 +85,26 @@ class Scenario:
 
         if (end not in previous):
             return ([])
-        ret: Path = []
-        current_hub = end
-        while (current_hub is not None):
-            ret.append(((current_hub.norm_coord), current_hub))
-            current_hub = previous[current_hub]
-        ret.reverse()
-        if ((not (ret)) or (ret[0][1] != start)):
-            return ([])
+        ret: Paths = []
+        for i in range(len(self.drones)):
+            path: Hubs = []
+            current_hub = end
+            while (current_hub is not None):
+                path.append(current_hub)
+                current_hub = previous[current_hub]
+            path += ([None] * i)
+            path.reverse()
+            for hub in path:
+                if hub == None:
+                    print("hub.name = None ", end="")
+                else:
+                    print("hub.name =", hub.name, " ", end="")
+            print()
+            print(f"=================={i}=================")
+            # if ((not (path)) or (path[0][1] != start)):
+            #     return ([])
+            ret.append(path)
+            # for path in ret:
         return (ret)
 
     def display_hubs(self) -> None:

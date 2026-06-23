@@ -21,6 +21,7 @@ class Drone:
                                                      self.drone_size,
                                                      (hub.norm_coord[0],
                                                       hub.norm_coord[1]))[1]
+        self.waiting: bool = True
 
     def get_sprite(self, direction: str) -> Surface:
         i: int = int(self.sprite_index)
