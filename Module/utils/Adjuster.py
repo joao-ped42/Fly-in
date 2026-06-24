@@ -42,8 +42,7 @@ class Adjuster:
     def variation_rate(current_x: int,
                        current_y: int,
                        next_x: int,
-                       next_y: int,
-                       past_hub_coords: tuple[int, int]) -> tuple[int, int]:
+                       next_y: int) -> tuple[int, int]:
         delta_x: int = next_x - current_x
         delta_y: int = next_y - current_y
         vel: float = 35

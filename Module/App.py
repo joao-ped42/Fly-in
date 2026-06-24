@@ -38,63 +38,17 @@ class App:
         self.running: bool = True
 
     def run(self) -> None:
-        def _() -> None:
-            sprites: list[str] = []
-            folder: str = "src/vid"
-            for sprite in os.listdir(folder):
-                full_path: str = os.path.join(folder, sprite)
-                if (os.path.isfile(full_path)):
-                    sprites.append(f"{folder}/{sprite}")
-            sprites = list(sorted(sprites))
-            display.flip()
-            sound: mixer.Sound = mixer.Sound("src/_.mp3")
-            sound.set_volume(3.0)
-            overlay: Surface = Surface((self.virtual_screen.get_width(),
-                                        self.virtual_screen.get_height()),
-                                       pygame.SRCALPHA)
-            pygame.mixer.music.set_volume(0)
-            sleep(3)
-            sound.play()
-            for f in sprites:
-                img: Surface = image.load(f)
-                s_w: int = self.virtual_screen.get_width()
-                s_h: int = self.virtual_screen.get_height()
-                resize: Surface = transform.scale(img, (s_w, s_h))
-                img_w: int = resize.get_width()
-                img_h: int = resize.get_height()
-                dest: Coord = (int(s_w / 2) - int(img_w / 2),
-                               int(s_h / 2) - int(img_h / 2))
-                self.virtual_screen.blit(resize, dest)
-                current_w: int = self.screen.get_width()
-                current_h: int = self.screen.get_height()
-                scaled: Surface = transform.scale(self.virtual_screen,
-                                                  (current_w, current_h))
-                self.screen.blit(scaled)
-                display.flip()
-                self.graph_frame.blit(self.bg_img, (0, 0))
-                self.virtual_screen.blit(self.graph_frame, (0, 0))
-                self.__place_sound(sound_text)
-                self.virtual_screen.blit(overlay, (0, 0))
-            sound.stop()
-            pygame.mixer.music.set_volume(0.2)
         mixer.music.load(f"src/msc/{self.music}.mp3")
         mixer.music.set_volume(0.2)
         clock: time.Clock = time.Clock()
-        drone_size: int = self.scenario.drones[0].drone_size
-        hub_size: int = self.scenario.hubs[0].sprite.get_width()
-        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
-        recent_hub: Hub = self.scenario.get_start_hub()
         pygame.mixer.music.play(-1)
-        # sound: str = "On"
         font: pygame.Font = pygame.font.SysFont("Consolas", 50, bold=True)
         _counter: int = 0
-        # turn: int = 0
-        # direction: str = "right"
         self.scenario.drones[0].waiting = False
         while (self.running):
             bet: int = choice(range(100000))
             if ((bet == 67) and (_counter == 0)):
-                _()
+                self._()
                 _counter += 1
             sound_text: Surface = font.render(f"Sound: {self.Stats.sound}",
                                               True, self.text_color)
@@ -118,65 +72,13 @@ class App:
                     elif (event.key == pygame.K_ESCAPE):
                         self.running = False
                     elif (event.key == pygame.K_RIGHT):
-                        turn_plus: int = 0
-                        if (choice(range(100)) == 67):
-                            _()
-                        limit: int = len(max(self.solution, key=len))
-                        for i in range(len(self.solution)):
-                            drone: Drone = self.scenario.drones[i]
-                            sol: Path = self.solution[i]
-                            try:
-                                drone.increase_index(limit)
-                                turn_plus = 1
-                            except IndexControl:
-                                continue
-                            hub_coords: Coord = drone.current_hub.norm_coord
-                            recent_coords: Coord = (drone.norm_x, drone.norm_y)
-                            if (recent_coords == center(hub_size,
-                                                        drone_size,
-                                                        hub_coords)):
-                                try:
-                                    hub = sol[drone.sol_index]
-                                except IndexError:
-                                    continue
-                                if (hub is not None):
-                                    if (drone.current_hub.coordinates[0]
-                                            < hub.coordinates[0]):
-                                        self.Stats.direction = "right"
-                                    recent_hub = drone.current_hub
-                                    drone.move_to_hub(hub)
-                        # print()
-                        self.Stats.turn += turn_plus
+                        self.__move_left()
                     elif (event.key == pygame.K_LEFT):
-                        turn_plus = 0
-                        for i in range(len(self.solution)):
-                            drone = self.scenario.drones[i]
-                            sol = self.solution[i]
-                            try:
-                                drone.reduce_index()
-                                turn_plus = -1
-                            except IndexControl:
-                                continue
-                            hub_coords = (drone.norm_x, drone.norm_y)
-                            n_coord: Coord = drone.current_hub.norm_coord
-                            if (hub_coords == center(hub_size,
-                                                     drone.drone_size,
-                                                     n_coord)):
-                                recent_hub = drone.current_hub
-                                try:
-                                    hub = sol[drone.sol_index]
-                                except IndexError:
-                                    continue
-                                if (hub is not None):
-                                    if (drone.current_hub.coordinates[0] >
-                                            hub.coordinates[0]):
-                                        self.Stats.direction = "left"
-                                    drone.move_to_hub(hub)
-                        self.Stats.turn += turn_plus
+                        self.__move_right()
             self.graph_frame.blit(self.bg_img)
             for recent_drone in self.scenario.drones:
                 if (not recent_drone.waiting):
-                    self.__move_drone(recent_drone, recent_hub)
+                    self.__move_drone(recent_drone)
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()
@@ -300,6 +202,67 @@ class App:
         menu_sound.play()
         pygame.mixer.music.unpause()
 
+    def __move_right(self) -> None:
+        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
+        hub_size: int = self.scenario.hubs[0].sprite.get_width()
+        turn_plus = 0
+        for i in range(len(self.solution)):
+            drone = self.scenario.drones[i]
+            sol = self.solution[i]
+            try:
+                drone.reduce_index()
+                turn_plus = -1
+            except IndexControl:
+                continue
+            hub_coords = (drone.norm_x, drone.norm_y)
+            n_coord: Coord = drone.current_hub.norm_coord
+            if (hub_coords == center(hub_size,
+                                     drone.drone_size,
+                                     n_coord)):
+                try:
+                    hub = sol[drone.sol_index]
+                except IndexError:
+                    continue
+                if (hub is not None):
+                    if (drone.current_hub.coordinates[0] >
+                            hub.coordinates[0]):
+                        self.Stats.direction = "left"
+                    drone.move_to_hub(hub)
+        self.Stats.turn += turn_plus
+
+    def __move_left(self) -> None:
+        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
+        hub_size: int = self.scenario.hubs[0].sprite.get_width()
+        drone_size: int = self.scenario.drones[0].drone_size
+        turn_plus: int = 0
+        if (choice(range(100)) == 67):
+            self._()
+        limit: int = len(max(self.solution, key=len))
+        for i in range(len(self.solution)):
+            drone: Drone = self.scenario.drones[i]
+            sol: Path = self.solution[i]
+            try:
+                drone.increase_index(limit)
+                turn_plus = 1
+            except IndexControl:
+                continue
+            hub_coords: Coord = drone.current_hub.norm_coord
+            recent_coords: Coord = (drone.norm_x, drone.norm_y)
+            if (recent_coords == center(hub_size,
+                                        drone_size,
+                                        hub_coords)):
+                try:
+                    hub = sol[drone.sol_index]
+                except IndexError:
+                    continue
+                if (hub is not None):
+                    if (drone.current_hub.coordinates[0]
+                            < hub.coordinates[0]):
+                        self.Stats.direction = "right"
+                    drone.move_to_hub(hub)
+        # print()
+        self.Stats.turn += turn_plus
+
     def __place_menu(self,
                      sound: Surface,
                      turn: Surface) -> None:
@@ -343,7 +306,7 @@ class App:
         else:
             self.Stats.sound = "On"
 
-    def __move_drone(self, drone: Drone, hub: Hub) -> None:
+    def __move_drone(self, drone: Drone) -> None:
         hub_size: int = drone.current_hub.sprite.get_height()
         hub_coord: Coord = (drone.current_hub.norm_coord[0],
                             drone.current_hub.norm_coord[1])
@@ -356,14 +319,12 @@ class App:
             new_x: int = new_coord[0]
             new_y: int = new_coord[1]
             var: Callable[[int, int,
-                           int, int,
-                           Coord], Coord] = Adjuster.variation_rate
+                           int, int],
+                          Coord] = Adjuster.variation_rate
             move_values: tuple[int, int] = var(norm_x,
                                                norm_y,
                                                new_x,
-                                               new_y,
-                                               hub.
-                                               norm_coord)
+                                               new_y,)
             drone.move(move_values[0], move_values[1])
 
     def __resize(self) -> None:
@@ -384,3 +345,42 @@ class App:
                 else:
                     print(f"{i + 1}. Waiting...")
             path_num += 1
+
+    def _(self) -> None:
+        sprites: list[str] = []
+        folder: str = "src/vid"
+        for sprite in os.listdir(folder):
+            full_path: str = os.path.join(folder, sprite)
+            if (os.path.isfile(full_path)):
+                sprites.append(f"{folder}/{sprite}")
+        sprites = list(sorted(sprites))
+        display.flip()
+        sound: mixer.Sound = mixer.Sound("src/_.mp3")
+        sound.set_volume(3.0)
+        overlay: Surface = Surface((self.virtual_screen.get_width(),
+                                    self.virtual_screen.get_height()),
+                                   pygame.SRCALPHA)
+        pygame.mixer.music.set_volume(0)
+        sleep(3)
+        sound.play()
+        for f in sprites:
+            img: Surface = image.load(f)
+            s_w: int = self.virtual_screen.get_width()
+            s_h: int = self.virtual_screen.get_height()
+            resize: Surface = transform.scale(img, (s_w, s_h))
+            img_w: int = resize.get_width()
+            img_h: int = resize.get_height()
+            dest: Coord = (int(s_w / 2) - int(img_w / 2),
+                           int(s_h / 2) - int(img_h / 2))
+            self.virtual_screen.blit(resize, dest)
+            current_w: int = self.screen.get_width()
+            current_h: int = self.screen.get_height()
+            scaled: Surface = transform.scale(self.virtual_screen,
+                                              (current_w, current_h))
+            self.screen.blit(scaled)
+            display.flip()
+            self.graph_frame.blit(self.bg_img, (0, 0))
+            self.virtual_screen.blit(self.graph_frame, (0, 0))
+            self.virtual_screen.blit(overlay, (0, 0))
+        sound.stop()
+        pygame.mixer.music.set_volume(0.2)
