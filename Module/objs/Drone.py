@@ -1,5 +1,6 @@
 from .Hub import Hub
 from ..utils.Adjuster import Adjuster
+from ..utils.Exceptions import IndexControl
 from random import choice
 import os
 from pygame import Surface, image, transform
@@ -95,3 +96,15 @@ class Drone:
             if os.path.isfile(full_path):
                 sprite_list.append(f"{folder}/{sprite}")
         return (list(sorted(sprite_list)))
+
+    def reduce_index(self) -> None:
+        if (self.sol_index >= 1):
+            self.sol_index -= 1
+        else:
+            raise IndexControl
+
+    def increase_index(self, limit: int) -> None:
+        if (self.sol_index + 1 < limit):
+            self.sol_index += 1
+        else:
+            raise IndexControl

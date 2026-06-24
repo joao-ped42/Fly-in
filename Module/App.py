@@ -1,6 +1,7 @@
 from .objs.Hub import Hub
 from .Scenario import Scenario
 from .utils import Drone, Adjuster
+from .utils.Exceptions import IndexControl
 from .Types import Colors, Color, Paths, Coord, Path
 import os
 import pygame
@@ -14,6 +15,11 @@ from pygame import (display, image, time,
 
 
 class App:
+    class Stats:
+        sound: str = "On"
+        direction: str = "right"
+        turn: int = 0
+
     def __init__(self, scenario: Scenario,
                  screen_w: int,
                  screen_h: int) -> None:
@@ -28,43 +34,7 @@ class App:
         self.virtual_screen: Surface = Surface((screen_w, screen_h))
         self.graph_frame: Surface = Surface((screen_w, screen_h))
         self.graph_frame.fill((29, 31, 36))
-        bg_imgs: dict[str, Colors] = {"angel_island": ((245, 177, 32),
-                                                       (24, 204, 78)),
-                                      "biolizard": ((55, 74, 69),
-                                                    (214, 135, 71)),
-                                      "cosmic_wall": ((158, 45, 173),
-                                                      (199, 97, 24)),
-                                      "final_chase": ((22, 217, 158),
-                                                      (196, 135, 37)),
-                                      "final_rush": ((245, 177, 32),
-                                                     (255, 255, 255)),
-                                      "mad_space": ((74, 26, 122),
-                                                    (22, 199, 99)),
-                                      "nika": ((0, 0, 0),
-                                               (255, 255, 255)),
-                                      "sky_chase": ((41, 72, 87),
-                                                    (227, 113, 52)),
-                                      "sky_chase2": ((245, 177, 32),
-                                                     (138, 28, 31)),
-                                      "skyblock": ((51, 36, 21),
-                                                   (255, 255, 255)),
-                                      "tokyo_ghoul": ((0, 0, 0),
-                                                      (10, 16, 138)),
-                                      "latios_flying": ((44, 171, 74),
-                                                        (161, 93, 31)),
-                                      "rayquaza": ((199, 40, 201),
-                                                   (60, 209, 38)),
-                                      "up": ((0, 0, 0),
-                                             (255, 255, 255)),
-                                      "walpurgisnatch": ((156, 50, 103),
-                                                         (180, 133, 242))}
-        bg_choice: tuple[str, Colors] = choice(tuple(bg_imgs.items()))
-        self.bg_img: Surface = image.load(f"src/bg_img/{bg_choice[0]}.png")
-        self.text_color: Color = bg_choice[1][0]
-        self.connec_color: Color = bg_choice[1][1]
-        self.menu: Surface = Surface((self.virtual_screen.get_width() / 2,
-                                      self.virtual_screen.get_height() * 3/4))
-        self.music: str = bg_choice[0]
+        self.__set_bg()
         self.running: bool = True
 
     def run(self) -> None:
@@ -115,20 +85,20 @@ class App:
         center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
         recent_hub: Hub = self.scenario.get_start_hub()
         pygame.mixer.music.play(-1)
-        sound: str = "On"
+        # sound: str = "On"
         font: pygame.Font = pygame.font.SysFont("Consolas", 50, bold=True)
         _counter: int = 0
-        turn: int = 0
-        direction: str = "right"
+        # turn: int = 0
+        # direction: str = "right"
         self.scenario.drones[0].waiting = False
         while (self.running):
             bet: int = choice(range(100000))
             if ((bet == 67) and (_counter == 0)):
                 _()
                 _counter += 1
-            sound_text: Surface = font.render(f"Sound: {sound}",
+            sound_text: Surface = font.render(f"Sound: {self.Stats.sound}",
                                               True, self.text_color)
-            turn_text: Surface = font.render(f"Turn: {turn}",
+            turn_text: Surface = font.render(f"Turn: {self.Stats.turn}",
                                              True, self.text_color)
             for event in pygame.event.get():
                 if (event.type == pygame.QUIT):
@@ -139,106 +109,81 @@ class App:
                         menu_sound: Sound = Sound("src/menu_pause.wav")
                         menu_sound.set_volume(0.5)
                         menu_sound.play()
-                        self.__place_menu(sound_text, direction)
+                        self.__place_menu(sound_text,
+                                          turn_text,
+                                          self.Stats.direction)
                         menu_sound.play()
                         pygame.mixer.music.unpause()
                     if (event.key == pygame.K_m):
                         if (pygame.mixer.music.get_volume() > 0):
                             pygame.mixer.music.set_volume(0)
-                            sound = "Off"
+                            self.Stats.sound = "Off"
                         else:
                             pygame.mixer.music.set_volume(0.2)
-                            sound = "On"
+                            self.Stats.sound = "On"
                     elif (event.key == pygame.K_KP_MINUS):
-                        volume: float = pygame.mixer.music.get_volume()
-                        new: float = max(0.0, volume - 0.1)
-                        pygame.mixer.music.set_volume(new)
-                        if (new == 0):
-                            sound = "Off"
+                        self.__set_volume(-0.1)
                     elif (event.key == pygame.K_KP_PLUS):
-                        volume = pygame.mixer.music.get_volume()
-                        new = min(2.0, volume + 0.1)
-                        pygame.mixer.music.set_volume(new)
-                        sound = "On"
+                        self.__set_volume(0.1)
                     elif (event.key == pygame.K_ESCAPE):
                         self.running = False
                     elif (event.key == pygame.K_RIGHT):
+                        turn_plus: int = 0
                         if (choice(range(100)) == 67):
                             _()
-                        # turn_plus: int = 0
+                        limit: int = len(max(self.solution, key=len))
                         for i in range(len(self.solution)):
                             drone: Drone = self.scenario.drones[i]
                             sol: Path = self.solution[i]
-                            # if (drone.sol_index + 1 < len(sol)):
-                            drone.sol_index += 1
-                            # else:
-                            #     continue
-                            # for hub in sol:
-                            #     if (hub is not None):
-                            #         print(hub.name)
+                            try:
+                                drone.increase_index(limit)
+                                turn_plus = 1
+                            except IndexControl:
+                                continue
                             hub_coords: Coord = drone.current_hub.norm_coord
                             recent_coords: Coord = (drone.norm_x, drone.norm_y)
                             if (recent_coords == center(hub_size,
                                                         drone_size,
                                                         hub_coords)):
-                                # if (drone.sol_index < len(sol)):
-                                #     # try:
                                 try:
                                     hub = sol[drone.sol_index]
                                 except IndexError:
                                     continue
                                 if (hub is not None):
-                                    # print("hub =", hub.name)
                                     if (drone.current_hub.coordinates[0]
                                             < hub.coordinates[0]):
-                                        direction = "right"
-                                    # if (hub.zone == "restricted"):
-                                    #     turn_plus = 2
-                                    # else:
-                                    #     turn_plus = 1
+                                        self.Stats.direction = "right"
                                     recent_hub = drone.current_hub
                                     drone.move_to_hub(hub)
-                                    # except IndexError:
-                                    #     pass
-                        # turn += turn_plus
                         # print()
+                        self.Stats.turn += turn_plus
                     elif (event.key == pygame.K_LEFT):
-                        # turn_plus = 0
+                        turn_plus = 0
                         for i in range(len(self.solution)):
                             drone = self.scenario.drones[i]
                             sol = self.solution[i]
-                            # print("drone.sol_index =", drone.sol_index)
-                            # if (drone.sol_index > 0):
-                            drone.sol_index -= 1
-                            # else:
-                            #     continue
+                            try:
+                                drone.reduce_index()
+                                turn_plus = -1
+                            except IndexControl:
+                                continue
                             hub_coords = (drone.norm_x, drone.norm_y)
                             n_coord: Coord = drone.current_hub.norm_coord
                             if (hub_coords == center(hub_size,
                                                      drone.drone_size,
                                                      n_coord)):
-                                # try:
-                                # if (drone.sol_index >= 0):
-                                # zone: str = drone.current_hub.zone
-                                # if (zone == "restricted"):
-                                #    # if (turn > 1):
-                                #        # turn_plus = -2
-                                # else:
-                                #    # turn_plus = -1
                                 recent_hub = drone.current_hub
                                 try:
                                     hub = sol[drone.sol_index]
                                 except IndexError:
                                     continue
                                 if (hub is not None):
-                                    # print("hub =", hub.name)
                                     if (drone.current_hub.coordinates[0] >
                                             hub.coordinates[0]):
-                                        direction = "left"
+                                        self.Stats.direction = "left"
                                     drone.move_to_hub(hub)
-                                # except IndexError:
-                                #     pass
-                        # turn += turn_plus
+                        self.Stats.turn += turn_plus
+                        # print()
             self.graph_frame.blit(self.bg_img)
             for recent_drone in self.scenario.drones:
                 if (not recent_drone.waiting):
@@ -246,16 +191,54 @@ class App:
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()
-            self.__place_drones(direction)
+            self.__place_drones(self.Stats.direction)
             self.__place_sound(sound_text)
             self.__place_turn(turn_text)
             self.virtual_screen.blit(self.graph_frame, (0, 0))
             self.__resize()
             display.flip()
             self.virtual_screen.fill((0, 0, 0))
-            # sleep(0.05)
             clock.tick(60)
         pygame.quit()
+
+    def __set_bg(self) -> None:
+        bg_imgs: dict[str, Colors] = {"angel_island": ((245, 177, 32),
+                                                       (24, 204, 78)),
+                                      "biolizard": ((55, 74, 69),
+                                                    (214, 135, 71)),
+                                      "cosmic_wall": ((158, 45, 173),
+                                                      (199, 97, 24)),
+                                      "final_chase": ((22, 217, 158),
+                                                      (196, 135, 37)),
+                                      "final_rush": ((245, 177, 32),
+                                                     (255, 255, 255)),
+                                      "mad_space": ((74, 26, 122),
+                                                    (22, 199, 99)),
+                                      "nika": ((0, 0, 0),
+                                               (255, 255, 255)),
+                                      "sky_chase": ((41, 72, 87),
+                                                    (227, 113, 52)),
+                                      "sky_chase2": ((245, 177, 32),
+                                                     (138, 28, 31)),
+                                      "skyblock": ((51, 36, 21),
+                                                   (255, 255, 255)),
+                                      "tokyo_ghoul": ((0, 0, 0),
+                                                      (10, 16, 138)),
+                                      "latios_flying": ((44, 171, 74),
+                                                        (161, 93, 31)),
+                                      "rayquaza": ((199, 40, 201),
+                                                   (60, 209, 38)),
+                                      "up": ((0, 0, 0),
+                                             (255, 255, 255)),
+                                      "walpurgisnatch": ((156, 50, 103),
+                                                         (180, 133, 242))}
+        bg_choice: tuple[str, Colors] = choice(tuple(bg_imgs.items()))
+        self.bg_img: Surface = image.load(f"src/bg_img/{bg_choice[0]}.png")
+        self.text_color: Color = bg_choice[1][0]
+        self.connec_color: Color = bg_choice[1][1]
+        self.menu: Surface = Surface((self.virtual_screen.get_width() / 2,
+                                      self.virtual_screen.get_height() * 3/4))
+        self.music: str = bg_choice[0]
 
     def __place_hubs(self) -> None:
         for hub in self.scenario.hubs:
@@ -319,7 +302,10 @@ class App:
                 break
         self.graph_frame.blit(text, (0, turn_y))
 
-    def __place_menu(self, text: Surface, direction: str) -> None:
+    def __place_menu(self,
+                     sound: Surface,
+                     turn: Surface,
+                     direction: str) -> None:
         display.flip()
         menu: bool = True
         screen_w: int = self.virtual_screen.get_width()
@@ -336,7 +322,8 @@ class App:
             self.__place_hubs()
             self.__place_hub_names()
             self.__place_drones(direction)
-            self.__place_sound(text)
+            self.__place_sound(sound)
+            self.__place_turn(turn)
             self.menu.blit(menu_img, (0, 0))
             self.graph_frame.blit(menu_img, dest)
             self.virtual_screen.blit(self.graph_frame, (0, 0))
@@ -349,6 +336,15 @@ class App:
                     if (event.key in [pygame.K_SPACE, pygame.K_ESCAPE]):
                         menu = False
             display.flip()
+
+    def __set_volume(self, modifier: float) -> None:
+        volume: float = pygame.mixer.music.get_volume()
+        new: float = max(0.0, volume + modifier)
+        pygame.mixer.music.set_volume(new)
+        if (new == 0):
+            self.Stats.sound = "Off"
+        else:
+            self.Stats.sound = "On"
 
     def __move_drone(self, drone: Drone, hub: Hub) -> None:
         hub_size: int = drone.current_hub.sprite.get_height()

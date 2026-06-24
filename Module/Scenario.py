@@ -92,7 +92,7 @@ class Scenario:
             while (current_hub is not None):
                 path.append(current_hub)
                 current_hub = previous[current_hub]
-            path = ([None] * i) + path + ([None] * i)
+            path += ([None] * i)
             path.reverse()
             # for hub in path:
             #     if hub == None:
@@ -104,8 +104,14 @@ class Scenario:
             # if ((not (path)) or (path[0][1] != start)):
             #     return ([])
             ret.append(path)
-            # for path in ret:
-        return (ret)
+            new_ret: Paths = []
+            biggest_path_len: int = len(max(ret, key=len))
+            for way in ret:
+                new_way: Path = way
+                if (len(new_way) < biggest_path_len):
+                    new_way += [None] * (biggest_path_len - len(new_way))
+                new_ret.append(new_way)
+        return (new_ret)
 
     def display_hubs(self) -> None:
         for hub in self.hubs:

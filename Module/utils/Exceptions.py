@@ -16,3 +16,7 @@ class FactoryError(Exception):
 
 class HubError(Exception):
     pass
+
+
+class IndexControl(Exception):
+    pass
