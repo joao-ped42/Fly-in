@@ -105,22 +105,12 @@ class App:
                     self.running = False
                 elif (event.type == pygame.KEYDOWN):
                     if (event.key == pygame.K_SPACE):
-                        pygame.mixer.music.pause()
-                        menu_sound: Sound = Sound("src/menu_pause.wav")
-                        menu_sound.set_volume(0.5)
-                        menu_sound.play()
-                        self.__place_menu(sound_text,
-                                          turn_text,
-                                          self.Stats.direction)
-                        menu_sound.play()
-                        pygame.mixer.music.unpause()
+                        self.__pause(sound_text, turn_text)
                     if (event.key == pygame.K_m):
                         if (pygame.mixer.music.get_volume() > 0):
-                            pygame.mixer.music.set_volume(0)
-                            self.Stats.sound = "Off"
+                            self.__set_volume(-pygame.mixer.music.get_volume())
                         else:
-                            pygame.mixer.music.set_volume(0.2)
-                            self.Stats.sound = "On"
+                            self.__set_volume(0.3)
                     elif (event.key == pygame.K_KP_MINUS):
                         self.__set_volume(-0.1)
                     elif (event.key == pygame.K_KP_PLUS):
@@ -183,7 +173,6 @@ class App:
                                         self.Stats.direction = "left"
                                     drone.move_to_hub(hub)
                         self.Stats.turn += turn_plus
-                        # print()
             self.graph_frame.blit(self.bg_img)
             for recent_drone in self.scenario.drones:
                 if (not recent_drone.waiting):
@@ -302,10 +291,18 @@ class App:
                 break
         self.graph_frame.blit(text, (0, turn_y))
 
+    def __pause(self, sound: Surface, turn: Surface) -> None:
+        pygame.mixer.music.pause()
+        menu_sound: Sound = Sound("src/menu_pause.wav")
+        menu_sound.set_volume(0.3)
+        menu_sound.play()
+        self.__place_menu(sound, turn)
+        menu_sound.play()
+        pygame.mixer.music.unpause()
+
     def __place_menu(self,
                      sound: Surface,
-                     turn: Surface,
-                     direction: str) -> None:
+                     turn: Surface) -> None:
         display.flip()
         menu: bool = True
         screen_w: int = self.virtual_screen.get_width()
@@ -321,7 +318,7 @@ class App:
             self.__place_connections()
             self.__place_hubs()
             self.__place_hub_names()
-            self.__place_drones(direction)
+            self.__place_drones(self.Stats.direction)
             self.__place_sound(sound)
             self.__place_turn(turn)
             self.menu.blit(menu_img, (0, 0))
