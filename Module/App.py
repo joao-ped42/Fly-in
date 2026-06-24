@@ -51,18 +51,19 @@ class App:
             if ((bet == 67) and (_counter == 0)):
                 self._()
                 _counter += 1
+
             sound_text: Surface = font.render(f"Sound: {self.Stats.sound}",
                                               True, self.text_color)
             turn_text: Surface = font.render(f"Turn: {self.Stats.turn}",
                                              True, self.text_color)
-            for event in pygame.event.get():
-                if (event.type == pygame.QUIT):
-                    self.running = False
-                elif (event.type == pygame.KEYDOWN):
-                    self.__get_input(event.key, sound_text, turn_text)
+
+            self.__get_input(sound_text, turn_text)
             for recent_drone in self.scenario.drones:
                 self.__move_drone(recent_drone)
-            self.__blit(sound_text, turn_text)
+            self.__blit_to_graph(sound_text, turn_text)
+            self.virtual_screen.blit(self.graph_frame, (0, 0))
+            self.__place_resized()
+            display.flip()
             self.virtual_screen.fill((0, 0, 0))
             clock.tick(60)
         pygame.quit()
@@ -106,7 +107,7 @@ class App:
                                       self.virtual_screen.get_height() * 3/4))
         self.music: str = bg_choice[0]
 
-    def __blit(self, sound_text: Surface, turn_text: Surface) -> None:
+    def __blit_to_graph(self, sound_text: Surface, turn_text: Surface) -> None:
         self.graph_frame.blit(self.bg_img)
         self.__place_connections()
         self.__place_hubs()
@@ -114,9 +115,6 @@ class App:
         self.__place_drones(self.Stats.direction)
         self.__place_sound(sound_text)
         self.__place_turn(turn_text)
-        self.virtual_screen.blit(self.graph_frame, (0, 0))
-        self.__place_resized()
-        display.flip()
 
     def __place_hubs(self) -> None:
         for hub in self.scenario.hubs:
@@ -264,17 +262,11 @@ class App:
         while (menu):
             menu_img: Surface = image.load("src/menu.png")
             menu_img.set_colorkey((128, 64, 0))
-            self.graph_frame.blit(self.bg_img)
-            self.__place_connections()
-            self.__place_hubs()
-            self.__place_hub_names()
-            self.__place_drones(self.Stats.direction)
-            self.__place_sound(sound)
-            self.__place_turn(turn)
+            self.__blit_to_graph(sound, turn)
             self.menu.blit(menu_img, (0, 0))
             self.graph_frame.blit(menu_img, dest)
             self.virtual_screen.blit(self.graph_frame, (0, 0))
-            self.__resize()
+            self.__place_resized()
             for event in pygame.event.get():
                 if (event.type == pygame.QUIT):
                     pygame.quit()
@@ -322,26 +314,29 @@ class App:
         self.screen.blit(scaled)
 
     def __get_input(self,
-                    key: int,
                     sound_text: Surface,
                     turn_text: Surface) -> None:
-        if (key == pygame.K_SPACE):
-            self.__pause(sound_text, turn_text)
-        if (key == pygame.K_m):
-            if (pygame.mixer.music.get_volume() > 0):
-                self.__set_volume(-pygame.mixer.music.get_volume())
-            else:
-                self.__set_volume(0.3)
-        elif (key == pygame.K_KP_MINUS):
-            self.__set_volume(-0.1)
-        elif (key == pygame.K_KP_PLUS):
-            self.__set_volume(0.1)
-        elif (key == pygame.K_ESCAPE):
-            self.running = False
-        elif (key == pygame.K_RIGHT):
-            self.__move_left()
-        elif (key == pygame.K_LEFT):
-            self.__move_right()
+        for event in pygame.event.get():
+            if (event.type == pygame.QUIT):
+                self.running = False
+            elif (event.type == pygame.KEYDOWN):
+                if (event.key == pygame.K_SPACE):
+                    self.__pause(sound_text, turn_text)
+                if (event.key == pygame.K_m):
+                    if (pygame.mixer.music.get_volume() > 0):
+                        self.__set_volume(-pygame.mixer.music.get_volume())
+                    else:
+                        self.__set_volume(0.3)
+                elif (event.key == pygame.K_KP_MINUS):
+                    self.__set_volume(-0.1)
+                elif (event.key == pygame.K_KP_PLUS):
+                    self.__set_volume(0.1)
+                elif (event.key == pygame.K_ESCAPE):
+                    self.running = False
+                elif (event.key == pygame.K_RIGHT):
+                    self.__move_left()
+                elif (event.key == pygame.K_LEFT):
+                    self.__move_right()
 
     def display_solution(self) -> None:
         path_num: int = 1
