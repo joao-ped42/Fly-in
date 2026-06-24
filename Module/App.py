@@ -40,11 +40,12 @@ class App:
     def run(self) -> None:
         mixer.music.load(f"src/msc/{self.music}.mp3")
         mixer.music.set_volume(0.2)
-        clock: time.Clock = time.Clock()
         pygame.mixer.music.play(-1)
+
         font: pygame.Font = pygame.font.SysFont("Consolas", 50, bold=True)
         _counter: int = 0
-        self.scenario.drones[0].waiting = False
+        clock: time.Clock = time.Clock()
+
         while (self.running):
             bet: int = choice(range(100000))
             if ((bet == 67) and (_counter == 0)):
@@ -58,37 +59,10 @@ class App:
                 if (event.type == pygame.QUIT):
                     self.running = False
                 elif (event.type == pygame.KEYDOWN):
-                    # if (event.key == pygame.K_SPACE):
-                    #     self.__pause(sound_text, turn_text)
-                    # if (event.key == pygame.K_m):
-                    #     if (pygame.mixer.music.get_volume() > 0):
-                    #         self.__set_volume(-pygame.mixer.music.get_volume())
-                    #     else:
-                    #         self.__set_volume(0.3)
-                    # elif (event.key == pygame.K_KP_MINUS):
-                    #     self.__set_volume(-0.1)
-                    # elif (event.key == pygame.K_KP_PLUS):
-                    #     self.__set_volume(0.1)
-                    # elif (event.key == pygame.K_ESCAPE):
-                    #     self.running = False
-                    # elif (event.key == pygame.K_RIGHT):
-                    #     self.__move_left()
-                    # elif (event.key == pygame.K_LEFT):
-                    #     self.__move_right()
                     self.__get_input(event.key, sound_text, turn_text)
-            self.graph_frame.blit(self.bg_img)
             for recent_drone in self.scenario.drones:
-                if (not recent_drone.waiting):
-                    self.__move_drone(recent_drone)
-            self.__place_connections()
-            self.__place_hubs()
-            self.__place_hub_names()
-            self.__place_drones(self.Stats.direction)
-            self.__place_sound(sound_text)
-            self.__place_turn(turn_text)
-            self.virtual_screen.blit(self.graph_frame, (0, 0))
-            self.__resize()
-            display.flip()
+                self.__move_drone(recent_drone)
+            self.__blit(sound_text, turn_text)
             self.virtual_screen.fill((0, 0, 0))
             clock.tick(60)
         pygame.quit()
@@ -131,6 +105,18 @@ class App:
         self.menu: Surface = Surface((self.virtual_screen.get_width() / 2,
                                       self.virtual_screen.get_height() * 3/4))
         self.music: str = bg_choice[0]
+
+    def __blit(self, sound_text: Surface, turn_text: Surface) -> None:
+        self.graph_frame.blit(self.bg_img)
+        self.__place_connections()
+        self.__place_hubs()
+        self.__place_hub_names()
+        self.__place_drones(self.Stats.direction)
+        self.__place_sound(sound_text)
+        self.__place_turn(turn_text)
+        self.virtual_screen.blit(self.graph_frame, (0, 0))
+        self.__place_resized()
+        display.flip()
 
     def __place_hubs(self) -> None:
         for hub in self.scenario.hubs:
@@ -328,7 +314,7 @@ class App:
                                                new_y,)
             drone.move(move_values[0], move_values[1])
 
-    def __resize(self) -> None:
+    def __place_resized(self) -> None:
         current_w: int = self.screen.get_width()
         current_h: int = self.screen.get_height()
         scaled: Surface = transform.scale(self.virtual_screen,

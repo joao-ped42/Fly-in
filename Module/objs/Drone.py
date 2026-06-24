@@ -22,7 +22,6 @@ class Drone:
                                                      self.drone_size,
                                                      (hub.norm_coord[0],
                                                       hub.norm_coord[1]))[1]
-        self.waiting: bool = True
         self.sol_index: int = 0
 
     def get_sprite(self, direction: str) -> Surface:
@@ -64,8 +63,6 @@ class Drone:
     def move_to_hub(self, new_hub: Hub) -> None:
         if (self.current_hub != new_hub):
             self.current_hub = new_hub
-        if ((not (new_hub.is_start)) and (self.waiting)):
-            self.waiting = False
         # elif ((new_hub.is_end) and (not (self.waiting))):
         #     self.waiting = True
 
