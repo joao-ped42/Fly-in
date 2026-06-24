@@ -58,23 +58,24 @@ class App:
                 if (event.type == pygame.QUIT):
                     self.running = False
                 elif (event.type == pygame.KEYDOWN):
-                    if (event.key == pygame.K_SPACE):
-                        self.__pause(sound_text, turn_text)
-                    if (event.key == pygame.K_m):
-                        if (pygame.mixer.music.get_volume() > 0):
-                            self.__set_volume(-pygame.mixer.music.get_volume())
-                        else:
-                            self.__set_volume(0.3)
-                    elif (event.key == pygame.K_KP_MINUS):
-                        self.__set_volume(-0.1)
-                    elif (event.key == pygame.K_KP_PLUS):
-                        self.__set_volume(0.1)
-                    elif (event.key == pygame.K_ESCAPE):
-                        self.running = False
-                    elif (event.key == pygame.K_RIGHT):
-                        self.__move_left()
-                    elif (event.key == pygame.K_LEFT):
-                        self.__move_right()
+                    # if (event.key == pygame.K_SPACE):
+                    #     self.__pause(sound_text, turn_text)
+                    # if (event.key == pygame.K_m):
+                    #     if (pygame.mixer.music.get_volume() > 0):
+                    #         self.__set_volume(-pygame.mixer.music.get_volume())
+                    #     else:
+                    #         self.__set_volume(0.3)
+                    # elif (event.key == pygame.K_KP_MINUS):
+                    #     self.__set_volume(-0.1)
+                    # elif (event.key == pygame.K_KP_PLUS):
+                    #     self.__set_volume(0.1)
+                    # elif (event.key == pygame.K_ESCAPE):
+                    #     self.running = False
+                    # elif (event.key == pygame.K_RIGHT):
+                    #     self.__move_left()
+                    # elif (event.key == pygame.K_LEFT):
+                    #     self.__move_right()
+                    self.__get_input(event.key, sound_text, turn_text)
             self.graph_frame.blit(self.bg_img)
             for recent_drone in self.scenario.drones:
                 if (not recent_drone.waiting):
@@ -333,6 +334,28 @@ class App:
         scaled: Surface = transform.scale(self.virtual_screen,
                                           (current_w, current_h))
         self.screen.blit(scaled)
+
+    def __get_input(self,
+                    key: int,
+                    sound_text: Surface,
+                    turn_text: Surface) -> None:
+        if (key == pygame.K_SPACE):
+            self.__pause(sound_text, turn_text)
+        if (key == pygame.K_m):
+            if (pygame.mixer.music.get_volume() > 0):
+                self.__set_volume(-pygame.mixer.music.get_volume())
+            else:
+                self.__set_volume(0.3)
+        elif (key == pygame.K_KP_MINUS):
+            self.__set_volume(-0.1)
+        elif (key == pygame.K_KP_PLUS):
+            self.__set_volume(0.1)
+        elif (key == pygame.K_ESCAPE):
+            self.running = False
+        elif (key == pygame.K_RIGHT):
+            self.__move_left()
+        elif (key == pygame.K_LEFT):
+            self.__move_right()
 
     def display_solution(self) -> None:
         path_num: int = 1
