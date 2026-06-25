@@ -63,8 +63,6 @@ class Drone:
     def move_to_hub(self, new_hub: Hub) -> None:
         if (self.current_hub != new_hub):
             self.current_hub = new_hub
-        # elif ((new_hub.is_end) and (not (self.waiting))):
-        #     self.waiting = True
 
     def __get_sprites(self) -> list[str]:
         sprites: list[str] = ["abra",

@@ -179,10 +179,10 @@ class App:
         self.graph_frame.blit(text, (0, turn_y))
 
     def __pause(self, sound: Surface, turn: Surface) -> None:
-        pygame.mixer.music.pause()
         menu_sound: Sound = Sound("src/menu_pause.wav")
         menu_sound.set_volume(0.3)
         menu_sound.play()
+        pygame.mixer.music.pause()
         self.__place_menu(sound, turn)
         menu_sound.play()
         pygame.mixer.music.unpause()
@@ -212,7 +212,9 @@ class App:
                     if (drone.current_hub.coordinates[0] >
                             hub.coordinates[0]):
                         self.Stats.direction = "left"
+                    drone.current_hub.deport_drone()
                     drone.move_to_hub(hub)
+                    drone.current_hub.repatriate_drone()
         self.Stats.turn += turn_plus
 
     def __move_left(self) -> None:
@@ -244,7 +246,9 @@ class App:
                     if (drone.current_hub.coordinates[0]
                             < hub.coordinates[0]):
                         self.Stats.direction = "right"
+                    drone.current_hub.deport_drone()
                     drone.move_to_hub(hub)
+                    drone.current_hub.repatriate_drone()
         # print()
         self.Stats.turn += turn_plus
 
@@ -259,9 +263,9 @@ class App:
         menu_h: int = self.menu.get_height()
         dest: Coord = (int(screen_w / 2 - menu_w / 2),
                        int(screen_h / 2 - menu_h / 2))
+        menu_img: Surface = image.load("src/menu.png")
+        menu_img.set_colorkey((128, 64, 0))
         while (menu):
-            menu_img: Surface = image.load("src/menu.png")
-            menu_img.set_colorkey((128, 64, 0))
             self.__blit_to_graph(sound, turn)
             self.menu.blit(menu_img, (0, 0))
             self.graph_frame.blit(menu_img, dest)

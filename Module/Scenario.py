@@ -20,6 +20,7 @@ class Scenario:
         self.connections: Connecs = connections
         for i in range(nb_drones):
             self.drones.append(Drone(self.get_start_hub(), f"D{i + 1}"))
+        self.get_start_hub().total_drones = len(self.drones)
 
     def get_start_hub(self) -> Hub:
         ret: Hub = Hub("", 0, 0,
@@ -47,9 +48,6 @@ class Scenario:
             if ((connection.point1.name == hub.name) and
                     (connection.point1.zone != "blocked")):
                 ret.append(connection.point2)
-            # elif ((connection.point2.name == hub.name) and
-            #         (connection.point2.zone != "blocked")):
-            #     ret.append(connection.point1)
         return (ret)
 
     def verify_priority(self, hubs: Hubs) -> bool:

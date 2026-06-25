@@ -1,5 +1,5 @@
 from ..utils.Adjuster import Adjuster
-from ..utils.Exceptions import HubSobrepositionError
+from ..utils.Exceptions import HubSobrepositionError, IndexControl
 from pygame import Surface
 from pygame.image import load
 from pygame.transform import scale
@@ -39,6 +39,16 @@ class Hub:
                                                  self.sprite.get_width()))
             self.sprite.blit(resized_end_effect, (0, 0))
         self.is_visited: bool = False
+        self.total_drones: int = 0
+
+    def deport_drone(self) -> None:
+        if (self.total_drones != 0):
+            self.total_drones -= 1
+
+    def repatriate_drone(self) -> None:
+        if (self.total_drones == self.max_drones):
+            raise IndexControl
+        self.total_drones += 1
 
     def set_norm_coord(self, min_xy: tuple[int, int],
                        max_xy: tuple[int, int],
