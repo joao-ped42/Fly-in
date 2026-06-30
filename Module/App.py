@@ -214,7 +214,10 @@ class App:
                         self.Stats.direction = "left"
                     drone.current_hub.deport_drone()
                     drone.move_to_hub(hub)
-                    drone.current_hub.repatriate_drone()
+                    try:
+                        drone.current_hub.repatriate_drone()
+                    except IndexControl:
+                        pass
         self.Stats.turn += turn_plus
 
     def __move_left(self) -> None:
@@ -248,7 +251,10 @@ class App:
                         self.Stats.direction = "right"
                     drone.current_hub.deport_drone()
                     drone.move_to_hub(hub)
-                    drone.current_hub.repatriate_drone()
+                    try:
+                        drone.current_hub.repatriate_drone()
+                    except IndexControl:
+                        pass
         # print()
         self.Stats.turn += turn_plus
 

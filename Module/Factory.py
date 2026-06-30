@@ -27,28 +27,31 @@ class Factory:
                    total_hubs: int) -> Hubs:
         ret: Hubs = []
         parser: Parser = Parser()
+        line_num: int = 1
         try:
             for line in lines:
-                better_line: str = line.split("#")[0].strip()
-                hub_type: str = better_line.split(":")[0].strip()
-                parse_data: str = better_line.split(":")[1].strip()
-                if (hub_type == 'start_hub'):
-                    ret.append(parser.get_hub(parse_data,
-                                              screen_w,
-                                              total_hubs,
-                                              True, False))
-                elif (hub_type == 'end_hub'):
-                    ret.append(parser.get_hub(parse_data,
-                                              screen_w,
-                                              total_hubs,
-                                              False, True))
-                else:
-                    ret.append(parser.get_hub(parse_data,
-                                              screen_w,
-                                              total_hubs,
-                                              False, False))
+                if (line.startswith(('hub:', 'start_hub:', 'end_hub:'))):
+                    better_line: str = line.split("#")[0].strip()
+                    hub_type: str = better_line.split(":")[0].strip()
+                    parse_data: str = better_line.split(":")[1].strip()
+                    if (hub_type == 'start_hub'):
+                        ret.append(parser.get_hub(parse_data,
+                                                  screen_w,
+                                                  total_hubs,
+                                                  True, False))
+                    elif (hub_type == 'end_hub'):
+                        ret.append(parser.get_hub(parse_data,
+                                                  screen_w,
+                                                  total_hubs,
+                                                  False, True))
+                    else:
+                        ret.append(parser.get_hub(parse_data,
+                                                  screen_w,
+                                                  total_hubs,
+                                                  False, False))
+                line_num += 1
         except Exception as e:
-            raise FactoryError(f"{e}")
+            raise FactoryError(f"Line {line_num}: {e}")
         coords: list[tuple[int, int]] = []
         for hub in ret:
             coords.append(hub.coordinates)
@@ -70,12 +73,15 @@ class Factory:
     def __get_connecs(lines: list[str], hubs: Hubs) -> Connecs:
         ret: Connecs = []
         parser: Parser = Parser()
+        line_num: int = 1
         try:
             for line in lines:
-                parse_data: str = line.split(":")[1].strip()
-                ret.append(parser.get_connection(parse_data, hubs))
+                if (line.startswith('connection:')):
+                    parse_data: str = line.split(":")[1].strip()
+                    ret.append(parser.get_connection(parse_data, hubs))
+                line_num += 1
         except Exception as e:
-            raise FactoryError(f"{e}")
+            raise FactoryError(f"Line {line_num}: {e}")
         return (ret)
 
     def read_file(self, file_name: str,
@@ -89,11 +95,8 @@ class Factory:
                                                "start_hub:",
                                                "end_hub:")
             hub_filter: Filter = lambda x: x.startswith(hub_types)
-            connec_filter: Filter = lambda x: x.startswith("connection:")
 
             hubs_data: list[str] = list(filter(hub_filter, lines))
-            connecs_data: list[str] = list(filter(connec_filter, lines))
-
             if (sum([1 for string in hubs_data
                      if string.startswith("start_hub")]) != 1):
                 raise HubSobrepositionError("start_hub quantity "
@@ -104,11 +107,13 @@ class Factory:
                                             " is different than 1")
 
             nb_drones: int = self.__get_nb_drones(lines)
-            hubs: Hubs = self.__get_hubs(hubs_data,
+            hubs: Hubs = self.__get_hubs(lines,
                                          screen_w,
                                          screen_h,
-                                         len(hubs_data))
-            connections: Connecs = self.__get_connecs(connecs_data, hubs)
+                                         sum([1 for string in lines
+                                              if string.startswith(
+                                                  hub_types)]))
+            connections: Connecs = self.__get_connecs(lines, hubs)
         except Exception as e:
-            raise FactoryError(f"Error parsing data: {e}")
+            raise FactoryError(f"Error parsing data at {e}")
         return (Scenario(nb_drones, hubs, connections))

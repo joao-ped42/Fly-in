@@ -38,7 +38,7 @@ class Parser:
             return (metadata.strip())
 
         @staticmethod
-        def validate_metadata(data: str) -> bool:
+        def validate_metadata(data: str) -> None:
             data_split: list[str] = data.split(" ")
             i: int = 0
             while (i < len(data_split)):
@@ -47,32 +47,42 @@ class Parser:
                 if (prefix == 'zone'):
                     if (value not in ['normal', 'blocked',
                                       'restricted', 'priority']):
-                        return (False)
+                        raise MetadataError("Zone metadata can only be: ",
+                                            "normal, blocked, restricted",
+                                            " or priority.")
                 elif (prefix == 'color'):
-                    if (not (value.isalpha())):
-                        return (False)
+                    colors: list[str] = ['black', 'blue', 'brown',
+                                         'crimson', 'cyan', 'darkred',
+                                         'gold', 'green', 'lime',
+                                         'magenta', 'maroon', 'none',
+                                         'orange', 'purple', 'rainbow',
+                                         'purple', 'rainbow', 'red',
+                                         'spark', 'start', 'violet', 'yellow']
+                    if (value.lower() not in colors):
+                        raise MetadataError(f"There isn't a {value} color.")
                 elif (prefix == "max_drones" or prefix == "max_link_capacity"):
                     if (not (value.isdigit())):
-                        return (False)
+                        raise MetadataError(f"{prefix} metadata "
+                                            "must be an integer.")
                 else:
-                    return (False)
+                    raise MetadataError(f"{prefix} metadata is unknown.")
                 i += 1
-            return (True)
 
-        def validate_hub(self, hub_data: str) -> bool:
+        def validate_hub(self, hub_data: str) -> None:
             hub_data_split: list[str] = hub_data.split(" ")
             if ('-' in hub_data_split[0]):
-                return (False)
+                raise ValueError("Hub name can't have '-' in it.")
             try:
                 int(hub_data_split[1])
                 int(hub_data_split[2])
             except ValueError:
-                return (False)
+                raise ValueError("Hub coordinate must be an integer."
+                                 " If you're trying to make a "
+                                 "hub with a space in its name,"
+                                 " that's not accepted.")
             if (len(hub_data_split) > 3):
                 metadata: str = self.metadaticfy(hub_data_split, 3)
-                if (not (self.validate_metadata(metadata))):
-                    return (False)
-            return (True)
+                self.validate_metadata(metadata)
 
     def get_connection(self, con_data: str, hubs: list[Hub]) -> Connection:
         con_data_split: list[str] = con_data.split(" ")
@@ -106,37 +116,33 @@ class Parser:
                 is_start: bool,
                 is_end: bool) -> Hub:
 
-        if (self.Validator().validate_hub(hub_data)):
-            hub_data_split: list[str] = hub_data.split(" ")
-            name: str = hub_data_split[0]
-            x: int = int(hub_data_split[1])
-            y: int = int(hub_data_split[2])
-            img_size: int = Adjuster.size_adjuster(894, graph_w, total_hubs)
-            metadata: dict[str, str | int] = {}
-            if (len(hub_data_split) > 3):
-                base_metadata: str = self.Validator.metadaticfy(hub_data_split,
-                                                                3)
-                metadata = self.get_metadata(base_metadata)
-            return (Hub(name,
-                        x, y,
-                        (img_size, img_size),
-                        metadata,
-                        is_start,
-                        is_end))
-        else:
-            raise ValueError("Invalid data")
+        self.Validator().validate_hub(hub_data)
+        hub_data_split: list[str] = hub_data.split(" ")
+        name: str = hub_data_split[0]
+        x: int = int(hub_data_split[1])
+        y: int = int(hub_data_split[2])
+        img_size: int = Adjuster.size_adjuster(894, graph_w, total_hubs)
+        metadata: dict[str, str | int] = {}
+        if (len(hub_data_split) > 3):
+            base_metadata: str = self.Validator.metadaticfy(hub_data_split,
+                                                            3)
+            metadata = self.get_metadata(base_metadata)
+        return (Hub(name,
+                    x, y,
+                    (img_size, img_size),
+                    metadata,
+                    is_start,
+                    is_end))
 
     def get_metadata(self, data: str) -> dict[str, str | int]:
-        if (self.Validator.validate_metadata(data)):
-            metadatas: list[str] = data.split(" ")
-            ret: dict[str, str | int] = {}
-            for m_data in metadatas:
-                dict_key: str = m_data.split("=")[0]
-                dict_val: str = m_data.split("=")[1]
-                if (dict_val.isdigit()):
-                    ret.update({dict_key: int(dict_val)})
-                else:
-                    ret.update({dict_key: dict_val})
-            return (ret)
-        else:
-            raise MetadataError("Invalid metadata")
+        self.Validator.validate_metadata(data)
+        metadatas: list[str] = data.split(" ")
+        ret: dict[str, str | int] = {}
+        for m_data in metadatas:
+            dict_key: str = m_data.split("=")[0]
+            dict_val: str = m_data.split("=")[1]
+            if (dict_val.isdigit()):
+                ret.update({dict_key: int(dict_val)})
+            else:
+                ret.update({dict_key: dict_val})
+        return (ret)
