@@ -344,9 +344,11 @@ class App:
                 elif (event.key == pygame.K_ESCAPE):
                     self.running = False
                 elif (event.key == pygame.K_RIGHT):
-                    self.__move_left()
+                    if (self.scenario.stay_in_your_lane()):
+                        self.__move_left()
                 elif (event.key == pygame.K_LEFT):
-                    self.__move_right()
+                    if (self.scenario.stay_in_your_lane()):
+                        self.__move_right()
 
     def display_solution(self) -> None:
         path_num: int = 1

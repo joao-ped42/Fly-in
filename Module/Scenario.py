@@ -1,5 +1,6 @@
-from .utils import Drone, Hub, HubError
-from .Types import Hubs, Connecs, Path, Paths
+from typing import Callable
+from .utils import Drone, Hub, HubError, Adjuster
+from .Types import Hubs, Connecs, Path, Paths, Coord
 
 
 class Scenario:
@@ -120,3 +121,15 @@ class Scenario:
         for connection in self.connections:
             print(f"{connection.point1.name}-{connection.point2.name}", end="")
             print(f" (max_capacity: {connection.max_capacity})")
+
+    def stay_in_your_lane(self) -> bool:
+        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
+        hub_size: int = self.hubs[0].sprite.get_width()
+        drone_size: int = self.drones[0].drone_size
+        for drone in self.drones:
+            norm_coord: Coord = drone.current_hub.norm_coord
+            if ((drone.norm_x, drone.norm_y) != center(hub_size,
+                                                       drone_size,
+                                                       norm_coord)):
+                return (False)
+        return (True)
