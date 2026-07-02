@@ -6,18 +6,20 @@ from pygame.transform import scale
 
 
 class Hub:
-    def __init__(self, name: str,
-                 x: int, y: int,
+    def __init__(self: "Hub",
+                 name: str,
+                 x: float, y: float,
                  sprite_size: tuple[int, int],
                  metadata: dict[str, str | int],
                  is_start: bool,
-                 is_end: bool) -> None:
+                 is_end: bool,
+                 is_phantom: bool) -> None:
         if (is_start and is_end):
             raise HubSobrepositionError(
                 "Start and goal can't have the same coordinates"
                 )
         self.name: str = name
-        self.coordinates: tuple[int, int] = (x, y * (-1))
+        self.coordinates: tuple[float, float] = (x, y * (-1))
         self.zone: str = "normal"
         self.max_drones: int = 1
         img: Surface = load("src/hubs/rainbow.png")
@@ -40,26 +42,35 @@ class Hub:
             self.sprite.blit(resized_end_effect, (0, 0))
         self.is_visited: bool = False
         self.total_drones: int = 0
+        self.is_phantom: bool = is_phantom
+        if (is_phantom):
+            print("criei fantasma")
 
-    def deport_drone(self) -> None:
+    def deport_drone(self: "Hub") -> None:
         if (self.total_drones != 0):
             self.total_drones -= 1
 
-    def repatriate_drone(self) -> None:
+    def repatriate_drone(self: "Hub") -> None:
         if (self.total_drones == self.max_drones):
             raise IndexControl
         self.total_drones += 1
 
-    def set_norm_coord(self, min_xy: tuple[int, int],
-                       max_xy: tuple[int, int],
+    def set_norm_coord(self: "Hub",
+                       min_xy: tuple[float, float],
+                       max_xy: tuple[float, float],
                        screen_w: int, screen_h: int) -> None:
         a: Adjuster = Adjuster()
-        min_x: int = min_xy[0]
-        max_x: int = max_xy[0]
-        min_y: int = min_xy[1]
-        max_y: int = max_xy[1]
+        min_x: float = min_xy[0]
+        max_x: float = max_xy[0]
+        min_y: float = min_xy[1]
+        max_y: float = max_xy[1]
         self.norm_coord: tuple[int, int] = a.normalize_coord(self.coordinates,
                                                              min_x, max_x,
                                                              min_y, max_y,
                                                              screen_w,
                                                              screen_h)
+
+    def set_handmade_norm_coord(self: "Hub",
+                                norm_x: int,
+                                norm_y: int) -> None:
+        self.norm_coord = (norm_x, norm_y)

@@ -20,7 +20,8 @@ class App:
         direction: str = "right"
         turn: int = 0
 
-    def __init__(self, scenario: Scenario,
+    def __init__(self: "App",
+                 scenario: Scenario,
                  screen_w: int,
                  screen_h: int) -> None:
         pygame.init()
@@ -37,7 +38,7 @@ class App:
         self.__set_bg()
         self.running: bool = True
 
-    def run(self) -> None:
+    def run(self: "App") -> None:
         mixer.music.load(f"src/msc/{self.music}.mp3")
         mixer.music.set_volume(0.2)
         pygame.mixer.music.play(-1)
@@ -68,7 +69,267 @@ class App:
             clock.tick(60)
         pygame.quit()
 
-    def __set_bg(self) -> None:
+    def display_solution(self: "App") -> None:
+        path_num: int = 1
+        for path in self.solution:
+            print(f"================Path {path_num}================")
+            for i in range(len(path)):
+                hub: Hub | None = path[i]
+                if (isinstance(hub, Hub)):
+                    print(f"{i + 1}. {hub.name}")
+                else:
+                    print(f"{i + 1}. Waiting...")
+            path_num += 1
+
+    def __get_input(self: "App",
+                    sound_text: Surface,
+                    turn_text: Surface) -> None:
+        for event in pygame.event.get():
+            if (event.type == pygame.QUIT):
+                self.running = False
+            elif (event.type == pygame.KEYDOWN):
+                if (event.key == pygame.K_SPACE):
+                    self.__pause(sound_text, turn_text)
+                if (event.key == pygame.K_m):
+                    if (pygame.mixer.music.get_volume() > 0):
+                        self.__set_volume(-pygame.mixer.music.get_volume())
+                    else:
+                        self.__set_volume(0.3)
+                elif (event.key == pygame.K_KP_MINUS):
+                    self.__set_volume(-0.1)
+                elif (event.key == pygame.K_KP_PLUS):
+                    self.__set_volume(0.1)
+                elif (event.key == pygame.K_ESCAPE):
+                    self.running = False
+                elif (event.key == pygame.K_RIGHT):
+                    if (self.scenario.stay_in_your_lane()):
+                        self.__move_left()
+                elif (event.key == pygame.K_LEFT):
+                    if (self.scenario.stay_in_your_lane()):
+                        self.__move_right()
+
+    def __blit_to_graph(self: "App",
+                        sound_text: Surface,
+                        turn_text: Surface) -> None:
+        self.graph_frame.blit(self.bg_img)
+        self.__place_connections()
+        self.__place_hubs()
+        self.__place_hub_names()
+        self.__place_drones(self.Stats.direction)
+        self.__place_sound(sound_text)
+        self.__place_turn(turn_text)
+
+    def __place_hubs(self: "App") -> None:
+        for hub in self.scenario.hubs:
+            if (not (hub.is_phantom)):
+                self.graph_frame.blit(hub.sprite, hub.norm_coord)
+
+    def __place_hub_names(self: "App") -> None:
+        for hub in self.scenario.hubs:
+            if (not (hub.is_phantom)):
+                hub_size: int = hub.sprite.get_width()
+                font_size: int = int(hub_size / 5)
+                font: pygame.font.Font = pygame.font.SysFont("Consolas",
+                                                             font_size,
+                                                             bold=True)
+                text: Surface = font.render(hub.name, True, self.text_color)
+                text_w: int = text.get_width()
+                text_x: int = int((hub.norm_coord[0] + (hub_size / 2))
+                                - (text_w / 2))
+                text_y: int = hub_size + hub.norm_coord[1]
+                if (text_y >= self.virtual_screen.get_height()):
+                    text_y = hub.norm_coord[1] - text.get_height()
+                self.graph_frame.blit(text, (text_x, text_y))
+
+    def __place_connections(self: "App") -> None:
+        for connection in self.scenario.connections:
+            hub1_x: int = connection.point1.norm_coord[0]
+            hub2_x: int = connection.point2.norm_coord[0]
+            hub1_y: int = connection.point1.norm_coord[1]
+            hub2_y: int = connection.point2.norm_coord[1]
+            print(f'{connection.point1.name} coords =', (hub1_x, hub1_y))
+            print(f"{connection.point2.name} coords =", (hub2_x, hub2_y))
+            img_size: int = connection.point1.sprite.get_width()
+            start_coord_x1: int = int(hub1_x + img_size / 2)
+            start_coord_x2: int = int(hub2_x + img_size / 2)
+            start_coord_y1: int = int(hub1_y + img_size / 2)
+            start_coord_y2: int = int(hub2_y + img_size / 2)
+            pygame.draw.line(self.graph_frame,
+                            self.connec_color,
+                            (start_coord_x1, start_coord_y1),
+                            (start_coord_x2, start_coord_y2),
+                            int(img_size / 10))
+            pygame.draw.line(self.graph_frame,
+                            (255, 255, 255),
+                            (start_coord_x1, start_coord_y1),
+                            (start_coord_x2, start_coord_y2),
+                            int(img_size / 25))
+
+    def __place_drones(self: "App", direction: str) -> None:
+        for drone in self.scenario.drones:
+            dest: tuple[int, int] = (drone.norm_x, drone.norm_y)
+            self.graph_frame.blit(drone.get_sprite(direction), dest)
+
+    def __place_sound(self: "App", text: Surface) -> None:
+        sound_coords: Coord = ((self.virtual_screen.get_width())
+                               - text.get_width(), 0)
+        self.graph_frame.blit(text, sound_coords)
+
+    def __place_turn(self: "App", text: Surface) -> None:
+        turn_y: int = 0
+        for hub in self.scenario.hubs:
+            if (hub.norm_coord == (0, 0)):
+                graph_h: int = self.graph_frame.get_height()
+                text_h: int = text.get_height()
+                turn_y = graph_h - text_h
+                break
+        self.graph_frame.blit(text, (0, turn_y))
+
+    def __pause(self: "App", sound: Surface, turn: Surface) -> None:
+        menu_sound: Sound = Sound("src/menu_pause.wav")
+        menu_sound.set_volume(0.3)
+        menu_sound.play()
+        pygame.mixer.music.pause()
+        self.__place_menu(sound, turn)
+        menu_sound.play()
+        pygame.mixer.music.unpause()
+
+    def __move_right(self: "App") -> None:
+        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
+        hub_size: int = self.scenario.hubs[0].sprite.get_width()
+        turn_plus = 0
+        for i in range(len(self.solution)):
+            drone = self.scenario.drones[i]
+            sol = self.solution[i]
+            try:
+                drone.reduce_index()
+                turn_plus = -1
+            except IndexControl:
+                continue
+            hub_coords = (drone.norm_x, drone.norm_y)
+            n_coord: Coord = drone.current_hub.norm_coord
+            if (hub_coords == center(hub_size,
+                                     drone.drone_size,
+                                     n_coord)):
+                try:
+                    hub = sol[drone.sol_index]
+                except IndexError:
+                    continue
+                if (hub is not None):
+                    if (drone.current_hub.coordinates[0] >
+                            hub.coordinates[0]):
+                        self.Stats.direction = "left"
+                    drone.current_hub.deport_drone()
+                    drone.move_to_hub(hub)
+                    try:
+                        drone.current_hub.repatriate_drone()
+                    except IndexControl:
+                        pass
+        self.Stats.turn += turn_plus
+
+    def __move_left(self: "App") -> None:
+        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
+        hub_size: int = self.scenario.hubs[0].sprite.get_width()
+        drone_size: int = self.scenario.drones[0].drone_size
+        turn_plus: int = 0
+        if (choice(range(100)) == 67):
+            self._()
+        limit: int = len(max(self.solution, key=len))
+        for i in range(len(self.solution)):
+            drone: Drone = self.scenario.drones[i]
+            sol: Path = self.solution[i]
+            try:
+                drone.increase_index(limit)
+                turn_plus = 1
+            except IndexControl:
+                continue
+            hub_coords: Coord = drone.current_hub.norm_coord
+            recent_coords: Coord = (drone.norm_x, drone.norm_y)
+            if (recent_coords == center(hub_size,
+                                        drone_size,
+                                        hub_coords)):
+                try:
+                    hub = sol[drone.sol_index]
+                except IndexError:
+                    continue
+                if (hub is not None):
+                    if (drone.current_hub.coordinates[0]
+                            < hub.coordinates[0]):
+                        self.Stats.direction = "right"
+                    drone.current_hub.deport_drone()
+                    drone.move_to_hub(hub)
+                    try:
+                        drone.current_hub.repatriate_drone()
+                    except IndexControl:
+                        pass
+        self.Stats.turn += turn_plus
+
+    def __place_menu(self: "App",
+                     sound: Surface,
+                     turn: Surface) -> None:
+        display.flip()
+        menu: bool = True
+        screen_w: int = self.virtual_screen.get_width()
+        screen_h: int = self.virtual_screen.get_height()
+        menu_w: int = self.menu.get_width()
+        menu_h: int = self.menu.get_height()
+        dest: Coord = (int(screen_w / 2 - menu_w / 2),
+                       int(screen_h / 2 - menu_h / 2))
+        menu_img: Surface = image.load("src/menu.png")
+        menu_img.set_colorkey((128, 64, 0))
+        while (menu):
+            self.__blit_to_graph(sound, turn)
+            self.menu.blit(menu_img, (0, 0))
+            self.graph_frame.blit(menu_img, dest)
+            self.virtual_screen.blit(self.graph_frame, (0, 0))
+            self.__place_resized()
+            for event in pygame.event.get():
+                if (event.type == pygame.QUIT):
+                    pygame.quit()
+                    exit(0)
+                if (event.type == pygame.KEYDOWN):
+                    if (event.key in [pygame.K_SPACE, pygame.K_ESCAPE]):
+                        menu = False
+            display.flip()
+
+    def __set_volume(self: "App", modifier: float) -> None:
+        volume: float = pygame.mixer.music.get_volume()
+        new: float = max(0.0, volume + modifier)
+        pygame.mixer.music.set_volume(new)
+        if (new == 0):
+            self.Stats.sound = "Off"
+        else:
+            self.Stats.sound = "On"
+
+    def __move_drone(self: "App", drone: Drone) -> None:
+        hub_size: int = drone.current_hub.sprite.get_height()
+        hub_coord: Coord = (drone.current_hub.norm_coord[0],
+                            drone.current_hub.norm_coord[1])
+        new_coord: Coord = Adjuster.centralize_drone(hub_size,
+                                                     drone.drone_size,
+                                                     hub_coord)
+        if ((drone.norm_x, drone.norm_y) != new_coord):
+            norm_x: int = drone.norm_x
+            norm_y: int = drone.norm_y
+            new_x: int = new_coord[0]
+            new_y: int = new_coord[1]
+            var: Callable[[int, int,
+                           int, int],
+                          Coord] = Adjuster.variation_rate
+            move_values: tuple[int, int] = var(norm_x,
+                                               norm_y,
+                                               new_x,
+                                               new_y,)
+            drone.move(move_values[0], move_values[1])
+
+    def __place_resized(self: "App") -> None:
+        current_w: int = self.screen.get_width()
+        current_h: int = self.screen.get_height()
+        scaled: Surface = transform.scale(self.virtual_screen,
+                                          (current_w, current_h))
+        self.screen.blit(scaled)
+
+    def __set_bg(self: "App") -> None:
         bg_imgs: dict[str, Colors] = {"angel_island": ((245, 177, 32),
                                                        (24, 204, 78)),
                                       "biolizard": ((55, 74, 69),
@@ -106,261 +367,6 @@ class App:
         self.menu: Surface = Surface((self.virtual_screen.get_width() / 2,
                                       self.virtual_screen.get_height() * 3/4))
         self.music: str = bg_choice[0]
-
-    def __blit_to_graph(self, sound_text: Surface, turn_text: Surface) -> None:
-        self.graph_frame.blit(self.bg_img)
-        self.__place_connections()
-        self.__place_hubs()
-        self.__place_hub_names()
-        self.__place_drones(self.Stats.direction)
-        self.__place_sound(sound_text)
-        self.__place_turn(turn_text)
-
-    def __place_hubs(self) -> None:
-        for hub in self.scenario.hubs:
-            self.graph_frame.blit(hub.sprite, hub.norm_coord)
-
-    def __place_hub_names(self) -> None:
-        for hub in self.scenario.hubs:
-            hub_size: int = hub.sprite.get_width()
-            font_size: int = int(hub_size / 5)
-            font: pygame.font.Font = pygame.font.SysFont("Consolas",
-                                                         font_size,
-                                                         bold=True)
-            text: Surface = font.render(hub.name, True, self.text_color)
-            text_w: int = text.get_width()
-            text_x: int = int((hub.norm_coord[0] + (hub_size / 2))
-                              - (text_w / 2))
-            text_y: int = hub_size + hub.norm_coord[1]
-            if (text_y >= self.virtual_screen.get_height()):
-                text_y = hub.norm_coord[1] - text.get_height()
-            self.graph_frame.blit(text, (text_x, text_y))
-
-    def __place_connections(self) -> None:
-        for connection in self.scenario.connections:
-            hub1_x: int = connection.point1.norm_coord[0]
-            hub2_x: int = connection.point2.norm_coord[0]
-            hub1_y: int = connection.point1.norm_coord[1]
-            hub2_y: int = connection.point2.norm_coord[1]
-            img_size: int = connection.point1.sprite.get_width()
-            start_coord_x1: int = int(hub1_x + img_size / 2)
-            start_coord_x2: int = int(hub2_x + img_size / 2)
-            start_coord_y1: int = int(hub1_y + img_size / 2)
-            start_coord_y2: int = int(hub2_y + img_size / 2)
-            pygame.draw.line(self.graph_frame,
-                             self.connec_color,
-                             (start_coord_x1, start_coord_y1),
-                             (start_coord_x2, start_coord_y2),
-                             int(img_size / 10))
-            pygame.draw.line(self.graph_frame,
-                             (255, 255, 255),
-                             (start_coord_x1, start_coord_y1),
-                             (start_coord_x2, start_coord_y2),
-                             int(img_size / 25))
-
-    def __place_drones(self, direction: str) -> None:
-        for drone in self.scenario.drones:
-            dest: tuple[int, int] = (drone.norm_x, drone.norm_y)
-            self.graph_frame.blit(drone.get_sprite(direction), dest)
-
-    def __place_sound(self, text: Surface) -> None:
-        sound_coords: Coord = ((self.virtual_screen.get_width())
-                               - text.get_width(), 0)
-        self.graph_frame.blit(text, sound_coords)
-
-    def __place_turn(self, text: Surface) -> None:
-        turn_y: int = 0
-        for hub in self.scenario.hubs:
-            if (hub.norm_coord == (0, 0)):
-                graph_h: int = self.graph_frame.get_height()
-                text_h: int = text.get_height()
-                turn_y = graph_h - text_h
-                break
-        self.graph_frame.blit(text, (0, turn_y))
-
-    def __pause(self, sound: Surface, turn: Surface) -> None:
-        menu_sound: Sound = Sound("src/menu_pause.wav")
-        menu_sound.set_volume(0.3)
-        menu_sound.play()
-        pygame.mixer.music.pause()
-        self.__place_menu(sound, turn)
-        menu_sound.play()
-        pygame.mixer.music.unpause()
-
-    def __move_right(self) -> None:
-        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
-        hub_size: int = self.scenario.hubs[0].sprite.get_width()
-        turn_plus = 0
-        for i in range(len(self.solution)):
-            drone = self.scenario.drones[i]
-            sol = self.solution[i]
-            try:
-                drone.reduce_index()
-                turn_plus = -1
-            except IndexControl:
-                continue
-            hub_coords = (drone.norm_x, drone.norm_y)
-            n_coord: Coord = drone.current_hub.norm_coord
-            if (hub_coords == center(hub_size,
-                                     drone.drone_size,
-                                     n_coord)):
-                try:
-                    hub = sol[drone.sol_index]
-                except IndexError:
-                    continue
-                if (hub is not None):
-                    if (drone.current_hub.coordinates[0] >
-                            hub.coordinates[0]):
-                        self.Stats.direction = "left"
-                    drone.current_hub.deport_drone()
-                    drone.move_to_hub(hub)
-                    try:
-                        drone.current_hub.repatriate_drone()
-                    except IndexControl:
-                        pass
-        self.Stats.turn += turn_plus
-
-    def __move_left(self) -> None:
-        center: Callable[[int, int, Coord], Coord] = Adjuster.centralize_drone
-        hub_size: int = self.scenario.hubs[0].sprite.get_width()
-        drone_size: int = self.scenario.drones[0].drone_size
-        turn_plus: int = 0
-        if (choice(range(100)) == 67):
-            self._()
-        limit: int = len(max(self.solution, key=len))
-        for i in range(len(self.solution)):
-            drone: Drone = self.scenario.drones[i]
-            sol: Path = self.solution[i]
-            try:
-                drone.increase_index(limit)
-                turn_plus = 1
-            except IndexControl:
-                continue
-            hub_coords: Coord = drone.current_hub.norm_coord
-            recent_coords: Coord = (drone.norm_x, drone.norm_y)
-            if (recent_coords == center(hub_size,
-                                        drone_size,
-                                        hub_coords)):
-                try:
-                    hub = sol[drone.sol_index]
-                except IndexError:
-                    continue
-                if (hub is not None):
-                    if (drone.current_hub.coordinates[0]
-                            < hub.coordinates[0]):
-                        self.Stats.direction = "right"
-                    drone.current_hub.deport_drone()
-                    drone.move_to_hub(hub)
-                    try:
-                        drone.current_hub.repatriate_drone()
-                    except IndexControl:
-                        pass
-        # print()
-        self.Stats.turn += turn_plus
-
-    def __place_menu(self,
-                     sound: Surface,
-                     turn: Surface) -> None:
-        display.flip()
-        menu: bool = True
-        screen_w: int = self.virtual_screen.get_width()
-        screen_h: int = self.virtual_screen.get_height()
-        menu_w: int = self.menu.get_width()
-        menu_h: int = self.menu.get_height()
-        dest: Coord = (int(screen_w / 2 - menu_w / 2),
-                       int(screen_h / 2 - menu_h / 2))
-        menu_img: Surface = image.load("src/menu.png")
-        menu_img.set_colorkey((128, 64, 0))
-        while (menu):
-            self.__blit_to_graph(sound, turn)
-            self.menu.blit(menu_img, (0, 0))
-            self.graph_frame.blit(menu_img, dest)
-            self.virtual_screen.blit(self.graph_frame, (0, 0))
-            self.__place_resized()
-            for event in pygame.event.get():
-                if (event.type == pygame.QUIT):
-                    pygame.quit()
-                    exit(0)
-                if (event.type == pygame.KEYDOWN):
-                    if (event.key in [pygame.K_SPACE, pygame.K_ESCAPE]):
-                        menu = False
-            display.flip()
-
-    def __set_volume(self, modifier: float) -> None:
-        volume: float = pygame.mixer.music.get_volume()
-        new: float = max(0.0, volume + modifier)
-        pygame.mixer.music.set_volume(new)
-        if (new == 0):
-            self.Stats.sound = "Off"
-        else:
-            self.Stats.sound = "On"
-
-    def __move_drone(self, drone: Drone) -> None:
-        hub_size: int = drone.current_hub.sprite.get_height()
-        hub_coord: Coord = (drone.current_hub.norm_coord[0],
-                            drone.current_hub.norm_coord[1])
-        new_coord: Coord = Adjuster.centralize_drone(hub_size,
-                                                     drone.drone_size,
-                                                     hub_coord)
-        if ((drone.norm_x, drone.norm_y) != new_coord):
-            norm_x: int = drone.norm_x
-            norm_y: int = drone.norm_y
-            new_x: int = new_coord[0]
-            new_y: int = new_coord[1]
-            var: Callable[[int, int,
-                           int, int],
-                          Coord] = Adjuster.variation_rate
-            move_values: tuple[int, int] = var(norm_x,
-                                               norm_y,
-                                               new_x,
-                                               new_y,)
-            drone.move(move_values[0], move_values[1])
-
-    def __place_resized(self) -> None:
-        current_w: int = self.screen.get_width()
-        current_h: int = self.screen.get_height()
-        scaled: Surface = transform.scale(self.virtual_screen,
-                                          (current_w, current_h))
-        self.screen.blit(scaled)
-
-    def __get_input(self,
-                    sound_text: Surface,
-                    turn_text: Surface) -> None:
-        for event in pygame.event.get():
-            if (event.type == pygame.QUIT):
-                self.running = False
-            elif (event.type == pygame.KEYDOWN):
-                if (event.key == pygame.K_SPACE):
-                    self.__pause(sound_text, turn_text)
-                if (event.key == pygame.K_m):
-                    if (pygame.mixer.music.get_volume() > 0):
-                        self.__set_volume(-pygame.mixer.music.get_volume())
-                    else:
-                        self.__set_volume(0.3)
-                elif (event.key == pygame.K_KP_MINUS):
-                    self.__set_volume(-0.1)
-                elif (event.key == pygame.K_KP_PLUS):
-                    self.__set_volume(0.1)
-                elif (event.key == pygame.K_ESCAPE):
-                    self.running = False
-                elif (event.key == pygame.K_RIGHT):
-                    if (self.scenario.stay_in_your_lane()):
-                        self.__move_left()
-                elif (event.key == pygame.K_LEFT):
-                    if (self.scenario.stay_in_your_lane()):
-                        self.__move_right()
-
-    def display_solution(self) -> None:
-        path_num: int = 1
-        for path in self.solution:
-            print(f"================Path {path_num}================")
-            for i in range(len(path)):
-                hub: Hub | None = path[i]
-                if (isinstance(hub, Hub)):
-                    print(f"{i + 1}. {hub.name}")
-                else:
-                    print(f"{i + 1}. Waiting...")
-            path_num += 1
 
     def _(self) -> None:
         sprites: list[str] = []

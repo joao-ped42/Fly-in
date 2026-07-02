@@ -84,14 +84,18 @@ class Parser:
                 metadata: str = self.metadaticfy(hub_data_split, 3)
                 self.validate_metadata(metadata)
 
-    def get_connection(self, con_data: str, hubs: list[Hub]) -> Connection:
+    def get_connection(self: "Parser",
+                       con_data: str,
+                       hubs: list[Hub]) -> Connection:
         con_data_split: list[str] = con_data.split(" ")
         hub1_name: str = con_data_split[0].split('-')[0]
         hub2_name: str = con_data_split[0].split('-')[1]
         parent: Hub = Hub("", 0, 0, (0, 0),
-                          {"color": "red"}, False, False)
+                          {"color": "red"}, False, False,
+                          False)
         child: Hub = Hub("", 0, 0, (0, 0),
-                         {"color": "red"}, False, False)
+                         {"color": "red"}, False, False,
+                         False)
         for hub in hubs:
             if (hub.name == hub1_name):
                 child = hub
@@ -110,7 +114,8 @@ class Parser:
                                       " an integer.")
         return (Connection(parent, child, max_capacity))
 
-    def get_hub(self, hub_data: str,
+    def get_hub(self: "Parser",
+                hub_data: str,
                 graph_w: int,
                 total_hubs: int,
                 is_start: bool,
@@ -119,8 +124,8 @@ class Parser:
         self.Validator().validate_hub(hub_data)
         hub_data_split: list[str] = hub_data.split(" ")
         name: str = hub_data_split[0]
-        x: int = int(hub_data_split[1])
-        y: int = int(hub_data_split[2])
+        x: float = float(hub_data_split[1])
+        y: float = float(hub_data_split[2])
         img_size: int = Adjuster.size_adjuster(894, graph_w, total_hubs)
         metadata: dict[str, str | int] = {}
         if (len(hub_data_split) > 3):
@@ -132,9 +137,10 @@ class Parser:
                     (img_size, img_size),
                     metadata,
                     is_start,
-                    is_end))
+                    is_end,
+                    False))
 
-    def get_metadata(self, data: str) -> dict[str, str | int]:
+    def get_metadata(self: "Parser", data: str) -> dict[str, str | int]:
         self.Validator.validate_metadata(data)
         metadatas: list[str] = data.split(" ")
         ret: dict[str, str | int] = {}

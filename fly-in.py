@@ -1,13 +1,12 @@
+import pygame
+from sys import argv
 from Module import Scenario, App
 from Module.Factory import Factory
-from sys import argv
-import pygame
 
 
 def main() -> None:
     try:
         pygame.init()
-        print()
         screen_info: pygame.display._VidInfo = pygame.display.Info()
         screen_width: int = int(screen_info.current_w)
         screen_height: int = int(screen_info.current_h * (87.6 / 100))
@@ -15,7 +14,6 @@ def main() -> None:
                                                  screen_width,
                                                  screen_height)
         app: App = App(scenario, screen_width, screen_height)
-        app.scenario.visitable_neighbours(app.scenario.hubs[0])
         app.display_solution()
         app.run()
     except KeyboardInterrupt:

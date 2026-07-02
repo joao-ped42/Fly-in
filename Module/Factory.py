@@ -52,13 +52,13 @@ class Factory:
                 line_num += 1
         except Exception as e:
             raise FactoryError(f"Line {line_num}: {e}")
-        coords: list[tuple[int, int]] = []
+        coords: list[tuple[float, float]] = []
         for hub in ret:
             coords.append(hub.coordinates)
-        hubs_x: list[int] = [x for x, _ in coords]
-        hubs_y: list[int] = [y for _, y in coords]
-        max_xy: tuple[int, int] = (max(hubs_x), max(hubs_y))
-        min_xy: tuple[int, int] = (min(hubs_x), min(hubs_y))
+        hubs_x: list[float] = [x for x, _ in coords]
+        hubs_y: list[float] = [y for _, y in coords]
+        max_xy: tuple[float, float] = (max(hubs_x), max(hubs_y))
+        min_xy: tuple[float, float] = (min(hubs_x), min(hubs_y))
         img_size: int = Adjuster.size_adjuster(894, screen_w, total_hubs)
         screen_info: tuple[int, int] = (screen_w - img_size,
                                         int(screen_h - (img_size)))
@@ -84,7 +84,8 @@ class Factory:
             raise FactoryError(f"Line {line_num}: {e}")
         return (ret)
 
-    def read_file(self, file_name: str,
+    def read_file(self: "Factory",
+                  file_name: str,
                   screen_w: int,
                   screen_h: int) -> Scenario:
         with open(file_name, "r") as file:

@@ -3,7 +3,7 @@ from math import exp
 
 class Adjuster:
     def normalize_coord(self,
-                        coord: tuple[int, int],
+                        coord: tuple[float, float],
                         min_x: int, max_x: int,
                         min_y: int, max_y: int,
                         screen_w: int,
